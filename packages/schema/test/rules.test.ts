@@ -1,21 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  bare,
-  codes,
-  contract,
-  first,
-  meta,
-  paragraph,
-  text,
-  tree,
-} from "./fixture";
+import { codes, contract, first, meta, paragraph, text, tree } from "./fixture";
 
 const { rules } = meta;
 
-/** Runs the contract rules on a contract with the axes of the fixture unless it names its own. */
-const contractIssue = (c: Record<string, unknown>) =>
-  first(rules.contract, { axes: contract.axes, order: contract.order, ...c });
+/** Runs the contract rules on a contract. */
+const contractIssue = (c: unknown) => first(rules.contract, c);
 
 describe("contract", () => {
   it("accepts the fixture contract", () => {
@@ -26,11 +16,10 @@ describe("contract", () => {
     expect(contractIssue({ kinds: {} })).toBeUndefined();
   });
 
-  it("rejects a non-object, an unknown key, and missing members", () => {
+  it("rejects a non-object, an unknown key, and a missing kinds", () => {
     expect(first(rules.contract, 1)?.code).toBe("not_object");
-    expect(contractIssue(bare({}, { extra: 1 }))?.code).toBe("unknown_key");
+    expect(contractIssue({ kinds: {}, extra: 1 })?.code).toBe("unknown_key");
     expect(first(rules.contract, {})?.code).toBe("missing_key");
-    expect(first(rules.contract, { kinds: {} })?.path).toEqual(["axes"]);
   });
 
   it("rejects a kind that lacks a required member", () => {
@@ -154,41 +143,6 @@ describe("contract", () => {
     ).toBe("duplicate");
   });
 
-  it("rejects an axis whose default is not a context, and a bad order", () => {
-    const axes = (axesValue: unknown, order?: unknown) => ({
-      kinds: {},
-      axes: axesValue,
-      ...(order ? { order } : {}),
-    });
-    const issue = first(
-      rules.contract,
-      axes({ locale: { contexts: ["en"], default: "fr" } }),
-    );
-    expect(issue?.code).toBe("not_member");
-    expect(issue?.path).toEqual(["axes", "locale", "default"]);
-    expect(
-      first(
-        rules.contract,
-        axes({ locale: { contexts: ["en", "en"], default: "en" } }),
-      )?.code,
-    ).toBe("duplicate");
-    expect(
-      contractIssue(axes({ locale: { contexts: [], default: "en" } }))?.code,
-    ).toBe("not_member");
-    expect(contractIssue({ ...contract, order: ["locale"] })?.code).toBe(
-      "not_exhaustive",
-    );
-    expect(
-      contractIssue({
-        ...contract,
-        order: ["locale", "platform", "locale"],
-      })?.code,
-    ).toBe("duplicate");
-    expect(
-      contractIssue({ ...contract, order: ["locale", "ghost"] })?.code,
-    ).toBe("not_member");
-  });
-
   it("rejects two kinds with the same match", () => {
     const dup = contractIssue({
       kinds: {
@@ -229,29 +183,11 @@ describe("contract", () => {
   });
 });
 
-describe("kind and axis", () => {
-  it("accept known names and reject the rest", () => {
+describe("kind", () => {
+  it("accepts known names and rejects the rest", () => {
     expect(first(rules.kind, "callout")).toBeUndefined();
     expect(codes(rules.kind, "ghost")).toContain("not_member");
     expect(codes(rules.kind, 1)).toContain("not_string");
-    expect(first(rules.axis, "locale")).toBeUndefined();
-    expect(codes(rules.axis, "en")).toContain("not_member");
-  });
-});
-
-describe("input", () => {
-  it("requires one known context per axis", () => {
-    expect(
-      first(rules.input, { locale: "fr", platform: "mac" }),
-    ).toBeUndefined();
-    expect(first(rules.input, { locale: "fr" })?.code).toBe("missing_key");
-    expect(first(rules.input, { locale: "de", platform: "mac" })?.code).toBe(
-      "not_member",
-    );
-    expect(
-      first(rules.input, { locale: "fr", platform: "mac", extra: "x" })?.code,
-    ).toBe("unknown_key");
-    expect(first(rules.input, "fr")?.code).toBe("not_object");
   });
 });
 
@@ -276,7 +212,6 @@ describe("override, patch, and layer", () => {
     expect(first(rules.patch, {})).toBeUndefined();
     expect(
       first(rules.patch, {
-        context: { locale: "fr" },
         documents: { guide: { "callout[0]": override } },
       }),
     ).toBeUndefined();
@@ -284,7 +219,6 @@ describe("override, patch, and layer", () => {
       first(rules.layer, {
         id: "fr",
         name: "French",
-        context: { locale: "fr" },
         documents: { guide: { "callout[0]": override } },
       }),
     ).toBeUndefined();
@@ -301,13 +235,7 @@ describe("override, patch, and layer", () => {
     expect(first(rules.override, 1)?.code).toBe("not_object");
   });
 
-  it("reject a patch with a bad context or documents", () => {
-    expect(first(rules.patch, { context: { locale: "de" } })?.code).toBe(
-      "not_member",
-    );
-    expect(first(rules.patch, { context: { ghost: "x" } })?.code).toBe(
-      "unknown_key",
-    );
+  it("reject a patch with bad documents or members", () => {
     expect(first(rules.patch, { documents: { guide: "x" } })?.code).toBe(
       "not_object",
     );

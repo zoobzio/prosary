@@ -189,3 +189,75 @@ export const readAttributes = <C extends Contract>(
 
   return { attributes, issues, references };
 };
+
+/**
+ * Merges the attributes of an override over the attributes of a bound node.
+ * Each value of the override passes the rule of its slot as given, with no
+ * coercion. A name the kind does not declare is an issue. An `undefined` value
+ * resets a slot to its default, removes an optional slot, and is an issue for
+ * a required slot.
+ *
+ * @param current - The bound attributes of the node.
+ * @param next - The attributes of the override.
+ * @param kind - The kind of the node, for the messages.
+ * @param shape - The shape of the kind.
+ * @param path - The path of the override, for the issues.
+ * @returns The merged attributes, the issues, and the references found.
+ */
+export const mergeAttributes = <C extends Contract>(
+  current: Record<string, unknown>,
+  next: Record<string, unknown>,
+  kind: string,
+  shape: KindShape<C>,
+  path: string[],
+): Reading => {
+  const attributes: Record<string, unknown> = { ...current };
+  const issues: Issue[] = [];
+  const references: Found[] = [];
+  for (const [name, value] of Object.entries(next)) {
+    const slot = shape.attributes[name];
+    if (slot === undefined) {
+      issues.push({
+        code: "unknown_attribute",
+        message: `Kind '${kind}' does not declare attribute '${name}'.`,
+        path: [...path, name],
+        expected: Object.keys(shape.attributes),
+        received: name,
+      });
+      continue;
+    }
+    if (value === undefined) {
+      if (slot.default !== undefined) {
+        attributes[name] = slot.default;
+      } else if (slot.required) {
+        issues.push({
+          code: "missing_attribute",
+          message: `Kind '${kind}' requires attribute '${name}'.`,
+          path: [...path, name],
+        });
+      } else {
+        delete attributes[name];
+      }
+      continue;
+    }
+    const issue = slot.rule(value);
+    if (issue) {
+      issues.push({
+        code: "invalid_attribute",
+        message: `Attribute '${name}' is invalid: ${issue.message}`,
+        path: [...path, name],
+        expected: issue.expected,
+        received: value,
+      });
+      continue;
+    }
+    attributes[name] = value;
+    if (slot.type === "url" && typeof value === "string") {
+      const target = parseReference(value);
+      if (target) {
+        references.push({ target, path: [...path, name] });
+      }
+    }
+  }
+  return { attributes, issues, references };
+};

@@ -2,14 +2,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 
 import { SchemaError } from "../src/error";
 import { defineContract } from "../src/schema";
-import type {
-  Attributes,
-  Document,
-  Input,
-  Kind,
-  Node,
-  Role,
-} from "../src/types";
+import type { Attributes, Document, Kind, Node, Role } from "../src/types";
 import { contract, tree } from "./fixture";
 
 const schema = defineContract(contract);
@@ -40,24 +33,23 @@ describe("defineContract", () => {
   it("wires check, assert, parse, and inspect off the same contract", () => {
     expect(schema.check.document(tree)).toBe(true);
     expect(() => schema.assert.kind("callout")).not.toThrow();
-    expect(schema.parse.axis("locale")).toBe("locale");
-    expect(schema.inspect.input({ locale: "en" }).success).toBe(false);
+    expect(schema.parse.kind("callout")).toBe("callout");
+    expect(schema.inspect.reference("nope").success).toBe(false);
   });
 
   it("validates the contract at construction", () => {
     expect(() =>
       defineContract({
-        kinds: {},
-        axes: { locale: { contexts: ["en"], default: "fr" } },
-        order: ["locale"],
+        kinds: {
+          a: { match: { directive: "x" }, level: "block", content: "none" },
+          b: { match: { directive: "x" }, level: "block", content: "none" },
+        },
       }),
     ).toThrow(SchemaError);
   });
 
   it("constructs cleanly for a minimal contract", () => {
-    expect(() =>
-      defineContract({ kinds: {}, axes: {}, order: [] }),
-    ).not.toThrow();
+    expect(() => defineContract({ kinds: {} })).not.toThrow();
   });
 });
 
@@ -82,10 +74,6 @@ describe("types", () => {
       "border" | "marker" | "text"
     >();
     expectTypeOf<Role<C, "text">>().toEqualTypeOf<never>();
-    expectTypeOf<Input<C>>().toEqualTypeOf<{
-      locale: "en" | "fr";
-      platform: "mac" | "windows";
-    }>();
   });
 
   it("types the attributes with required and optional members", () => {

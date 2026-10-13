@@ -8,17 +8,21 @@ import type {
   Issue,
   Kind,
   Node,
+  Override,
+  Overrides,
   Result,
   Shape,
   Target,
 } from "./types";
 
-import { object } from "objectively";
+import { object, within } from "objectively";
 
-import { readAttributes } from "./attribute";
+import { mergeAttributes, readAttributes } from "./attribute";
 import { HTML_TYPE, ROOT_TYPE } from "./constant";
 import { identify } from "./identity";
 import { kindOf } from "./match";
+import { index } from "./tree";
+import { nest } from "./util";
 
 /**
  * A node under construction. The bind builds the tree as plain records and
@@ -281,5 +285,142 @@ export const defineBind = <C extends Contract>(
     return { success: true, data: built };
   };
 
-  return { document, node };
+  /* Applies an override to a bound node. The attributes merge over the bound
+     attributes under the rules of the kind. The children bind under the
+     content model and the id of the node, so their structural ids are the
+     ids the node would give them. The node ids of the subtree are new, so
+     the function does not check them against the rest of the document. */
+  const override = (target: Node<C>, override: Override): Result<Node<C>> => {
+    const state = open();
+    const kind = target.data.kind;
+    const built: Raw = { ...target };
+    if (override.attributes !== undefined) {
+      const merged = mergeAttributes(
+        target.data.attributes,
+        override.attributes,
+        kind,
+        shape.kinds[kind],
+        ["attributes"],
+      );
+      state.issues.push(...merged.issues);
+      state.found.push(...merged.references);
+      built.data = { ...target.data, attributes: merged.attributes };
+    }
+    if (override.children !== undefined) {
+      built.children = walk(
+        override.children,
+        shape.kinds[kind].permitted,
+        target.data.id,
+        ["children"],
+        false,
+        state,
+      );
+    }
+    if (!isNode(built, state)) {
+      return { success: false, issues: state.issues };
+    }
+    return { success: true, data: built };
+  };
+
+  /* The overrides passed, so the map is a map of overrides. */
+  const isOverrides = (_v: Raw, issues: Issue[]): _v is Overrides =>
+    issues.length === 0;
+
+  /* Checks a map of overrides by node id against a bound document. Each id
+     must name a node of the document. Each override must have the shape of an
+     override and apply to its node. */
+  const overrides = (
+    target: Document<C>,
+    v: unknown,
+    path: string[] = [],
+  ): Result<Overrides> => {
+    if (!object(v)) {
+      return {
+        success: false,
+        issues: [
+          {
+            code: "not_object",
+            message: "Overrides must be an object.",
+            path,
+            received: v,
+          },
+        ],
+      };
+    }
+    const issues: Issue[] = [];
+    const nodes = index(target);
+    for (const [id, candidate] of Object.entries(v)) {
+      const at = [...path, id];
+      const node = nodes.get(id);
+      if (node === undefined) {
+        issues.push({
+          code: "unknown_reference",
+          message: `Node id '${id}' names no node of the document.`,
+          path: at,
+          received: id,
+        });
+        continue;
+      }
+      if (!object(candidate)) {
+        issues.push({
+          code: "not_object",
+          message: "Override must be an object.",
+          path: at,
+          received: candidate,
+        });
+        continue;
+      }
+      const stray = Object.keys(candidate).find(
+        (key) => !within(enums.overrideKeys, key),
+      );
+      if (stray !== undefined) {
+        issues.push({
+          code: "unknown_key",
+          message: `Override contains an unknown key '${stray}'.`,
+          path: [...at, stray],
+          expected: [...enums.overrideKeys],
+          received: stray,
+        });
+        continue;
+      }
+      const attributes = candidate.attributes;
+      const children = candidate.children;
+      if (attributes !== undefined && !object(attributes)) {
+        issues.push({
+          code: "not_object",
+          message: "Attributes must be an object.",
+          path: [...at, "attributes"],
+          received: attributes,
+        });
+        continue;
+      }
+      if (children !== undefined && !Array.isArray(children)) {
+        issues.push({
+          code: "not_array",
+          message: "Children must be an array.",
+          path: [...at, "children"],
+          received: children,
+        });
+        continue;
+      }
+      const applied = override(node, {
+        ...(attributes === undefined ? {} : { attributes }),
+        ...(children === undefined ? {} : { children }),
+      });
+      if (!applied.success) {
+        issues.push(...applied.issues.map((issue) => nest(id, issue)));
+      }
+    }
+    if (!isOverrides(v, issues)) {
+      return { success: false, issues };
+    }
+    return { success: true, data: v };
+  };
+
+  return {
+    document,
+    node,
+    override,
+    overrides: (target, v) => overrides(target, v),
+  };
 };

@@ -144,23 +144,12 @@ export type Definition = {
 };
 
 /**
- * An axis definition. An axis has a closed set of contexts and a default.
- */
-export type AxisDefinition = {
-  contexts: readonly string[];
-  default: string;
-};
-
-/**
  * A contract. The kinds are the vocabulary of a document. `root` is the
- * content model of the document root. The axes are the dimensions of
- * variation. `order` is the composition order of the axes.
+ * content model of the document root.
  */
 export type Contract = {
   kinds: Record<string, Definition>;
   root?: Content;
-  axes: Record<string, AxisDefinition>;
-  order: readonly string[];
 };
 
 /* ── names from a contract ───────────────────────────────────────────── */
@@ -171,28 +160,6 @@ export type Contract = {
 export type Kind<C extends Contract> = keyof C["kinds"] & string;
 
 /**
- * The name of an axis in a contract.
- */
-export type Axis<C extends Contract> = keyof C["axes"] & string;
-
-/**
- * The name of a context in the axis `A` of a contract.
- */
-export type Context<
-  C extends Contract,
-  A extends Axis<C>,
-> = C["axes"][A]["contexts"][number];
-
-/**
- * The default context of the axis `A` of a contract. The `contract` rules
- * check that the default is one of the contexts.
- */
-export type Default<
-  C extends Contract,
-  A extends Axis<C>,
-> = C["axes"][A]["default"];
-
-/**
  * The name of a role of the kind `K` of a contract.
  */
 export type Role<
@@ -201,13 +168,6 @@ export type Role<
 > = C["kinds"][K] extends { roles: readonly (infer R extends string)[] }
   ? R
   : never;
-
-/**
- * The active context of each axis.
- */
-export type Input<C extends Contract> = {
-  [A in Axis<C>]: Context<C, A>;
-};
 
 /* ── attributes ──────────────────────────────────────────────────────── */
 
@@ -349,25 +309,29 @@ export type Override = {
 };
 
 /**
- * The overrides of an overlay, by document id and then by node id.
+ * The overrides of one document, by node id.
  */
-export type Overlay = Record<string, Record<string, Override>>;
+export type Overrides = Record<string, Override>;
 
 /**
- * A partial overlay of the documents. All members are optional. `context`
- * selects the contexts under which the overlay applies.
+ * The overrides of many documents, by document id and then by node id.
  */
-export type Patch<C extends Contract> = {
+export type Overlay = Record<string, Overrides>;
+
+/**
+ * A partial overlay of the documents. All members are optional. `documents`
+ * holds the overrides by document id and node id.
+ */
+export type Patch = {
   id?: string;
   name?: string;
-  context?: Partial<Input<C>>;
   documents?: Overlay;
 };
 
 /**
  * A {@link Patch} with an identity. A compiled translation is a layer.
  */
-export type Layer<C extends Contract> = Patch<C> & {
+export type Layer = Patch & {
   id: string;
   name: string;
 };
@@ -439,12 +403,10 @@ export type Result<V> =
 export type Domain<C extends Contract> = {
   contract: Contract;
   kind: Kind<C>;
-  axis: Axis<C>;
-  input: Input<C>;
   reference: Reference;
   override: Override;
-  patch: Patch<C>;
-  layer: Layer<C>;
+  patch: Patch;
+  layer: Layer;
   node: Node<C>;
   document: Document<C>;
 };
@@ -492,8 +454,8 @@ export type RequiredDefinitionKey = (typeof REQUIRED_DEFINITION_KEYS)[number];
 /* ── meta ────────────────────────────────────────────────────────────── */
 
 /**
- * The sets that the schema reads. The contract members come from the kinds and
- * the axes. The specification members are the same for every contract.
+ * The sets that the schema reads. The contract members come from the kinds.
+ * The specification members are the same for every contract.
  */
 export type Enum<C extends Contract> = {
   kinds: Set<Kind<C>>;
@@ -501,9 +463,6 @@ export type Enum<C extends Contract> = {
   block: Set<Kind<C>>;
   types: Map<string, Kind<C>[]>;
   directives: Map<string, Kind<C>>;
-  axes: Set<Axis<C>>;
-  contexts: { [A in Axis<C>]: Set<Context<C, A>> };
-  defaults: { [A in Axis<C>]: Default<C, A> };
   levels: Set<Level>;
   models: Set<Model>;
   attributeTypes: Set<AttributeType>;
@@ -551,12 +510,22 @@ export type Shape<C extends Contract> = {
 };
 
 /**
- * The bind functions. `document` binds a root. `node` binds one node and its
- * subtree without a parent. Each returns every issue.
+ * The bind functions. Each returns every issue.
+ *
+ * - `document` binds a raw root.
+ * - `node` binds one raw node and its subtree without a parent.
+ * - `override` applies an override to a bound node. The attributes merge over
+ *   the attributes of the node and pass the rules of its kind. The children
+ *   bind under the content model and the id of the node.
+ * - `overrides` checks a map of overrides by node id against a bound
+ *   document. Each id must name a node of the document. Each override must
+ *   apply to its node.
  */
 export type Bind<C extends Contract> = {
   document: (v: unknown, options?: BindOptions) => Result<Document<C>>;
   node: (v: unknown) => Result<Node<C>>;
+  override: (node: Node<C>, override: Override) => Result<Node<C>>;
+  overrides: (document: Document<C>, v: unknown) => Result<Overrides>;
 };
 
 /**
@@ -591,12 +560,10 @@ export type Check<C extends Contract> = {
 export type Assert<C extends Contract> = {
   contract: (v: unknown) => asserts v is Contract;
   kind: (v: unknown) => asserts v is Kind<C>;
-  axis: (v: unknown) => asserts v is Axis<C>;
-  input: (v: unknown) => asserts v is Input<C>;
   reference: (v: unknown) => asserts v is Reference;
   override: (v: unknown) => asserts v is Override;
-  patch: (v: unknown) => asserts v is Patch<C>;
-  layer: (v: unknown) => asserts v is Layer<C>;
+  patch: (v: unknown) => asserts v is Patch;
+  layer: (v: unknown) => asserts v is Layer;
   node: (v: unknown) => asserts v is Node<C>;
   document: (v: unknown) => asserts v is Document<C>;
 };

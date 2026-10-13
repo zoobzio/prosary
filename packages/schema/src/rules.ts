@@ -18,7 +18,6 @@ import {
   container,
   each,
   either,
-  exhaustive,
   fields,
   filled,
   flag,
@@ -36,8 +35,8 @@ import {
 /**
  * Builds the runtime {@link Rules} for a contract. The function makes a list
  * of rules for each validation kind with the atoms in `util`. The `contract`
- * rules check the semantics that the types do not: the content lists, the axis
- * defaults, the order, the attribute defaults, and the duplicate matches. The
+ * rules check the semantics that the types do not: the content lists, the
+ * attribute defaults, and the duplicate matches. The
  * `node` and `document` rules run the bind and return its first issue.
  *
  * @param base - The contract.
@@ -171,39 +170,6 @@ export const defineRules = <C extends Contract>(
     ),
   ]);
 
-  /* An axis default must be one of its contexts. */
-  const defaultContext: Rule = (v) => {
-    if (
-      object(v) &&
-      Array.isArray(v.contexts) &&
-      !v.contexts.includes(v.default)
-    ) {
-      return {
-        code: "not_member",
-        message: "The default must be one of the contexts.",
-        path: ["default"],
-        expected: v.contexts,
-        received: v.default,
-      };
-    }
-  };
-
-  const axis = all([
-    container("Axis"),
-    struct(
-      "Axis",
-      {
-        contexts: [
-          list("Contexts", [text("Context"), filled("Context")]),
-          unique("Contexts"),
-        ],
-        default: [text("Default"), filled("Default")],
-      },
-      new Set(["contexts", "default"]),
-    ),
-    defaultContext,
-  ]);
-
   /* Two kinds cannot claim the same nodes. */
   const distinct: Rule = (v) => {
     if (!object(v) || !object(v.kinds)) {
@@ -236,24 +202,11 @@ export const defineRules = <C extends Contract>(
       {
         kinds: [container("Kinds"), each([definition])],
         root: [content],
-        axes: [container("Axes"), each([axis])],
-        order: [
-          list("Order", [member("Axis", enums.axes)]),
-          unique("Order"),
-          exhaustive("Order", enums.axes),
-        ],
       },
-      new Set(["kinds", "axes", "order"]),
+      new Set(["kinds"]),
     ),
     distinct,
   ];
-
-  /* ── names and input ───────────────────────────────────────────────── */
-
-  const inputFields: Record<string, Rule[]> = {};
-  for (const name of enums.axes) {
-    inputFields[name] = [member("Context", enums.contexts[name])];
-  }
 
   const reference: Rule = (v) => {
     if (typeof v === "string" && parseReference(v) === undefined) {
@@ -292,15 +245,12 @@ export const defineRules = <C extends Contract>(
   const overlayFields: Record<string, Rule[]> = {
     id: [text("Identifier"), filled("Identifier")],
     name: [text("Name"), filled("Name")],
-    context: [container("Context"), fields("Context", inputFields)],
     documents: overlay,
   };
 
   return {
     contract,
     kind: [text("Kind"), member("Kind", enums.kinds)],
-    axis: [text("Axis"), member("Axis", enums.axes)],
-    input: [container("Input"), struct("Input", inputFields, enums.axes)],
     reference: [text("Reference"), reference],
     override,
     patch: [container("Patch"), fields("Patch", overlayFields)],

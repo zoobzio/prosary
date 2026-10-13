@@ -107,6 +107,13 @@ importers:
       '@prosary/schema':
         specifier: workspace:*
         version: link:../schema
+      objectively:
+        specifier: 'catalog:'
+        version: 0.3.0
+    devDependencies:
+      '@prosary/parse':
+        specifier: workspace:*
+        version: link:../parse
 
   packages/kit:
     dependencies:

@@ -26,8 +26,6 @@ export const defineInspect = <C extends Contract>(
   return {
     contract: inspect(parse.contract),
     kind: inspect(parse.kind),
-    axis: inspect(parse.axis),
-    input: inspect(parse.input),
     reference: inspect(parse.reference),
     override: inspect(parse.override),
     patch: inspect(parse.patch),

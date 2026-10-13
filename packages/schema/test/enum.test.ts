@@ -25,12 +25,6 @@ describe("defineEnum", () => {
     expect(enums.directives.has("heading")).toBe(false);
   });
 
-  it("reads the axes, contexts, and defaults", () => {
-    expect([...enums.axes]).toEqual(["locale", "platform"]);
-    expect([...enums.contexts.locale]).toEqual(["en", "fr"]);
-    expect(enums.defaults.platform).toBe("mac");
-  });
-
   it("holds the specification sets", () => {
     expect(enums.levels.has("block")).toBe(true);
     expect(enums.models.has("inline")).toBe(true);
@@ -39,9 +33,9 @@ describe("defineEnum", () => {
     expect([...enums.layerKeys]).toEqual(["id", "name"]);
   });
 
-  it("works for a contract with no axes", () => {
-    const bare = defineEnum({ kinds: {}, axes: {}, order: [] });
-    expect(bare.axes.size).toBe(0);
+  it("works for a contract with no kinds", () => {
+    const bare = defineEnum({ kinds: {} });
     expect(bare.kinds.size).toBe(0);
+    expect(bare.types.size).toBe(0);
   });
 });

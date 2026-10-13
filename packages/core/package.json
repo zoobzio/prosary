@@ -26,6 +26,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@prosary/schema": "workspace:*"
+    "@prosary/schema": "workspace:*",
+    "objectively": "catalog:"
+  },
+  "devDependencies": {
+    "@prosary/parse": "workspace:*"
   }
 }

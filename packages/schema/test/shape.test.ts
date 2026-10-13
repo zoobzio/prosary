@@ -63,8 +63,6 @@ describe("defineShape", () => {
     const narrow = {
       kinds: contract.kinds,
       root: ["paragraph"],
-      axes: {},
-      order: [],
     } as const;
     expect([...defineShape(narrow, defineEnum(narrow)).root]).toEqual([
       "paragraph",
@@ -72,8 +70,6 @@ describe("defineShape", () => {
     const none = {
       kinds: contract.kinds,
       root: "none",
-      axes: {},
-      order: [],
     } as const;
     expect(defineShape(none, defineEnum(none)).root.size).toBe(0);
   });

@@ -1,6 +1,6 @@
-import type { Axis, Context, Contract, Default, Enum, Kind } from "./types";
+import type { Contract, Enum, Kind } from "./types";
 
-import { entries, keys, remap } from "objectively";
+import { entries, keys } from "objectively";
 
 import {
   ATTRIBUTE_TYPES,
@@ -19,9 +19,9 @@ import { isDirectiveMatch } from "./match";
 /**
  * Builds the {@link Enum} for a contract. The specification members are the
  * same for all contracts. The function reads the contract members from the
- * kinds and the axes.
+ * kinds.
  *
- * @param base - The contract whose kinds and axes define the vocabulary.
+ * @param base - The contract whose kinds define the vocabulary.
  */
 export const defineEnum = <C extends Contract>(base: C): Enum<C> => {
   const kinds = new Set(keys(base.kinds));
@@ -45,26 +45,12 @@ export const defineEnum = <C extends Contract>(base: C): Enum<C> => {
     }
   }
 
-  const axes = new Set(keys(base.axes));
-  const contexts = remap<C["axes"], Enum<C>["contexts"]>(
-    base.axes,
-    <A extends Axis<C>>(axis: C["axes"][A]): Set<Context<C, A>> =>
-      new Set(axis.contexts),
-  );
-  const defaults = remap<C["axes"], Enum<C>["defaults"]>(
-    base.axes,
-    <A extends Axis<C>>(axis: C["axes"][A]): Default<C, A> => axis.default,
-  );
-
   return {
     kinds,
     inline,
     block,
     types,
     directives,
-    axes,
-    contexts,
-    defaults,
     levels: new Set(LEVELS),
     models: new Set(MODELS),
     attributeTypes: new Set(ATTRIBUTE_TYPES),

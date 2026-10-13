@@ -11,9 +11,6 @@ describe("defineParse", () => {
   it("returns the same value for the scalar and overlay kinds", () => {
     expect(parse.contract(contract)).toBe(contract);
     expect(parse.kind("callout")).toBe("callout");
-    expect(parse.axis("locale")).toBe("locale");
-    const input = { locale: "fr", platform: "mac" };
-    expect(parse.input(input)).toBe(input);
     expect(parse.reference("#x")).toBe("#x");
     const layer = { id: "l", name: "L" };
     expect(parse.override({})).toEqual({});

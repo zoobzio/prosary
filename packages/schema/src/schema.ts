@@ -19,9 +19,9 @@ import { defineParse } from "./parse";
  * The function validates the contract against the `contract` kind before it
  * returns the schema. An invalid contract throws at construction.
  *
- * @param base - The contract whose kinds and axes define the vocabulary.
+ * @param base - The contract whose kinds define the vocabulary.
  * @returns A schema with the sets, the bind, and the check, assert, parse, and
- *   inspect bundles. The bundles use the kind, axis, and context names of the
+ *   inspect bundles. The bundles use the kind names of the
  *   contract.
  */
 export const defineContract = <const C extends Contract>(

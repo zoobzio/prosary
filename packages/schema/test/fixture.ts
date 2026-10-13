@@ -5,7 +5,7 @@ import { defineMeta } from "../src/meta";
 /**
  * A contract for the test suites. The contract has standard kinds, two kinds
  * on one mdast type with a `where` match, a container directive with typed
- * attributes, a text directive, a leaf directive, and two axes.
+ * attributes, a text directive, and a leaf directive.
  */
 export const contract = {
   kinds: {
@@ -97,23 +97,10 @@ export const contract = {
       roles: ["border"],
     },
   },
-  axes: {
-    locale: { contexts: ["en", "fr"], default: "en" },
-    platform: { contexts: ["mac", "windows"], default: "mac" },
-  },
-  order: ["locale", "platform"],
 } as const satisfies Contract;
 
 /** The meta of the fixture contract. */
 export const meta = defineMeta(contract);
-
-/** Makes a contract with the given kinds and no axes. */
-export const bare = (kinds: unknown, rest: Record<string, unknown> = {}) => ({
-  kinds,
-  axes: {},
-  order: [],
-  ...rest,
-});
 
 /** Makes a text node. */
 export const text = (value: string) => ({ type: "text", value });

@@ -14,8 +14,6 @@ describe("defineInspect", () => {
       data: contract,
     });
     expect(inspect.kind("callout")).toEqual({ success: true, data: "callout" });
-    expect(inspect.axis("locale").success).toBe(true);
-    expect(inspect.input({ locale: "en", platform: "mac" }).success).toBe(true);
     expect(inspect.reference("#x").success).toBe(true);
     expect(inspect.override({}).success).toBe(true);
     expect(inspect.patch({}).success).toBe(true);

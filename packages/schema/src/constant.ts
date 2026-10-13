@@ -69,7 +69,7 @@ export const REFERENCE_PREFIX = "doc:";
 /**
  * The members of a patch. A patch rejects any other key.
  */
-export const PATCH_KEYS = ["id", "name", "context", "documents"] as const;
+export const PATCH_KEYS = ["id", "name", "documents"] as const;
 
 /**
  * The members that a layer must have. The other members in {@link PATCH_KEYS}
@@ -85,7 +85,7 @@ export const OVERRIDE_KEYS = ["attributes", "children"] as const;
 /**
  * The members of a contract. A contract rejects any other key.
  */
-export const CONTRACT_KEYS = ["kinds", "root", "axes", "order"] as const;
+export const CONTRACT_KEYS = ["kinds", "root"] as const;
 
 /**
  * The members of a kind definition. A definition rejects any other key.

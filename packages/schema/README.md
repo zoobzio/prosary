@@ -17,7 +17,7 @@ pnpm add @prosary/schema
 
 ## The contract
 
-A **contract** declares the **kinds**, the **axes**, and the **order**.
+A **contract** declares the **kinds** of node a document may hold.
 
 - A **kind** claims nodes in the tree. Its **match** names an mdast type, such
   as `blockquote`, or a directive name, such as `callout`. A `where` map
@@ -30,9 +30,6 @@ A **contract** declares the **kinds**, the **axes**, and the **order**.
   `attributes` of the node and coerces the string form. A standard kind reads
   the fields of the node.
 - A kind names its style **roles**, the named slots that a style binds.
-- An **axis** is a dimension of variation, such as `locale`. Each axis has a
-  closed set of **contexts** and a default. The **order** is the composition
-  order of the axes.
 
 ```ts
 import { defineContract } from "@prosary/schema";
@@ -67,8 +64,6 @@ const schema = defineContract({
       roles: ["border", "marker", "text"],
     },
   },
-  axes: { locale: { contexts: ["en", "fr"], default: "en" } },
-  order: ["locale"],
 });
 ```
 
@@ -109,20 +104,35 @@ Each bound node keeps its mdast fields and gains three fields in `data`:
 `SchemaError` that lists every issue. `parse` asserts and returns the value
 with its narrowed type. `inspect` returns a `Result`.
 
-| Kind        | Validates                                                               |
-| ----------- | ----------------------------------------------------------------------- |
-| `contract`  | A contract definition                                                   |
-| `kind`      | A kind name                                                             |
-| `axis`      | An axis name                                                            |
-| `input`     | One context for each axis, such as `{ locale: "fr" }`                   |
-| `reference` | A `doc:<document>#<node>`, `doc:<document>`, or `#<node>` string        |
-| `override`  | A replacement for one node: `attributes`, `children`, or both           |
-| `patch`     | An overlay: an optional identity, a `context`, and overrides by node id |
-| `layer`     | A patch with an `id` and a `name`                                       |
-| `node`      | One raw node and its subtree. The bind runs                             |
-| `document`  | A full raw tree. The bind runs                                          |
+| Kind        | Validates                                                        |
+| ----------- | ---------------------------------------------------------------- |
+| `contract`  | A contract definition                                            |
+| `kind`      | A kind name                                                      |
+| `reference` | A `doc:<document>#<node>`, `doc:<document>`, or `#<node>` string |
+| `override`  | A replacement for one node: `attributes`, `children`, or both    |
+| `patch`     | An overlay: an optional identity and overrides by document id    |
+| `layer`     | A patch with an `id` and a `name`                                |
+| `node`      | One raw node and its subtree. The bind runs                      |
+| `document`  | A full raw tree. The bind runs                                   |
 
 `parse.node` and `parse.document` return the bound tree, not the input.
+
+## Overrides
+
+A **layer** rebinds nodes of the base documents by node id. A compiled
+translation is a layer. A **patch** is the same shape without an identity. Each
+entry is an **override**: new `attributes`, new `children` as raw mdast nodes,
+or both.
+
+The bind has two functions for them. `bind.override(node, override)` applies
+an override to a bound node: the attributes merge over the bound attributes
+under the rules of the kind, and the children bind under the content model and
+the id of the node. `bind.overrides(document, overrides)` checks a map of
+overrides by node id against a bound document, so a store can validate a layer
+before it applies it.
+
+`index`, `visit`, and `replace` walk a bound tree, map its node ids, and copy
+it with one node replaced.
 
 ## Issues
 
@@ -140,13 +150,13 @@ list, which defaults to `http`, `https`, and `mailto`.
 
 - `Contract`, `Definition`, `Match`, `Attribute`, and `AxisDefinition` are the
   shapes of an authored contract.
-- `Kind<C>`, `Axis<C>`, `Context<C, A>`, `Default<C, A>`, and `Role<C, K>`
-  are names from a contract. `Input<C>` is one context for each axis.
+- `Kind<C>` and `Role<C, K>` are names from a contract.
 - `Attributes<C, K>` is the bound attribute map of a kind. A required
   attribute is present. An optional attribute can be absent.
 - `Node<C, K>` is a bound node. `Document<C>` is a bound root with the document
   id and the references.
-- `Override`, `Patch<C>`, and `Layer<C>` are the overlay shapes.
+- `Override`, `Overrides`, `Overlay`, `Patch`, and `Layer` are the overlay
+  shapes.
 - `Schema<C>` is the bundle that `defineContract` returns. `Check<C>`,
   `Assert<C>`, `Parse<C>`, and `Inspect<C>` are its families of functions.
 - `Result<V>` is the outcome of `bind` and `inspect`. `Issue` is a validation
@@ -155,8 +165,8 @@ list, which defaults to `http`, `https`, and `mailto`.
 - `SchemaError` is the error that `assert` and `parse` throw. It holds the
   `Issue` list.
 
-`slug`, `textOf`, and `parseReference` are exported for the kit and the
-renderers.
+`slug`, `textOf`, `parseReference`, `index`, `visit`, and `replace` are
+exported for the store, the kit, and the renderers.
 
 ## Related
 

@@ -21,14 +21,6 @@ export const defineParse = <C extends Contract>(
       assert.kind(v);
       return v;
     },
-    axis: (v: unknown) => {
-      assert.axis(v);
-      return v;
-    },
-    input: (v: unknown) => {
-      assert.input(v);
-      return v;
-    },
     reference: (v: unknown) => {
       assert.reference(v);
       return v;

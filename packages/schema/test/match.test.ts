@@ -61,8 +61,6 @@ describe("kindOf", () => {
           content: "none",
         },
       },
-      axes: {},
-      order: [],
     } as const;
     const narrowEnums = defineEnum(narrow);
     expect(

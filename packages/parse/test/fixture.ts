@@ -107,6 +107,4 @@ export const contract = {
       },
     },
   },
-  axes: {},
-  order: [],
 } as const satisfies Contract;

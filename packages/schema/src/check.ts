@@ -15,8 +15,6 @@ export const defineCheck = <C extends Contract>({
   return {
     contract: check<"contract">(rules.contract),
     kind: check<"kind">(rules.kind),
-    axis: check<"axis">(rules.axis),
-    input: check<"input">(rules.input),
     reference: check<"reference">(rules.reference),
     override: check<"override">(rules.override),
     patch: check<"patch">(rules.patch),

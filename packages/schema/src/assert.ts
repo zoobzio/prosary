@@ -1,9 +1,7 @@
 import type {
   Assert,
-  Axis,
   Contract,
   Document,
-  Input,
   Issue,
   Kind,
   Layer,
@@ -48,13 +46,11 @@ export const defineAssert = <C extends Contract>({
   return {
     contract: (v: unknown): asserts v is Contract => assert(v, rules.contract),
     kind: (v: unknown): asserts v is Kind<C> => assert(v, rules.kind),
-    axis: (v: unknown): asserts v is Axis<C> => assert(v, rules.axis),
-    input: (v: unknown): asserts v is Input<C> => assert(v, rules.input),
     reference: (v: unknown): asserts v is Reference =>
       assert(v, rules.reference),
     override: (v: unknown): asserts v is Override => assert(v, rules.override),
-    patch: (v: unknown): asserts v is Patch<C> => assert(v, rules.patch),
-    layer: (v: unknown): asserts v is Layer<C> => assert(v, rules.layer),
+    patch: (v: unknown): asserts v is Patch => assert(v, rules.patch),
+    layer: (v: unknown): asserts v is Layer => assert(v, rules.layer),
     node: (v: unknown): asserts v is Node<C> => bound(bind.node(v)),
     document: (v: unknown): asserts v is Document<C> => bound(bind.document(v)),
   };

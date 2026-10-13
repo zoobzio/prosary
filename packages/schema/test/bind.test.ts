@@ -467,3 +467,146 @@ describe("bind.node", () => {
     ).toEqual(["unknown_reference"]);
   });
 });
+
+describe("bind.override", () => {
+  const bound = bind.document(tree, { id: "guide" });
+  const callout = bound.success ? bound.data.children[3] : undefined;
+
+  it("merges attributes under the rules of the kind", () => {
+    if (!callout) {
+      return;
+    }
+    const result = bind.override(callout, {
+      attributes: { kind: "note", weight: 7 },
+    });
+    expect(result.success && result.data.data.attributes).toEqual({
+      kind: "note",
+      draft: true,
+      weight: 7,
+    });
+    expect(result.success && result.data.children?.length).toBe(1);
+  });
+
+  it("drops, resets, or requires an attribute set to undefined", () => {
+    if (!callout) {
+      return;
+    }
+    const dropped = bind.override(callout, {
+      attributes: { draft: undefined },
+    });
+    expect(dropped.success && dropped.data.data.attributes).toEqual({
+      kind: "warning",
+      weight: 3,
+    });
+    const reset = bind.override(callout, { attributes: { kind: undefined } });
+    expect(reset.success && reset.data.data.attributes).toEqual({
+      kind: "note",
+      draft: true,
+      weight: 3,
+    });
+    const code = bound.success ? bound.data.children[6] : undefined;
+    if (code) {
+      expect(
+        issueCodes(bind.override(code, { attributes: { value: undefined } })),
+      ).toEqual(["missing_attribute"]);
+    }
+  });
+
+  it("rejects an unknown or invalid attribute without coercion", () => {
+    if (!callout) {
+      return;
+    }
+    expect(
+      issueCodes(bind.override(callout, { attributes: { class: "x" } })),
+    ).toEqual(["unknown_attribute"]);
+    const bad = bind.override(callout, { attributes: { weight: "3" } });
+    expect(issueCodes(bad)).toEqual(["invalid_attribute"]);
+    if (!bad.success) {
+      expect(bad.issues[0]?.path).toEqual(["attributes", "weight"]);
+    }
+  });
+
+  it("binds replacement children under the content model and the id of the node", () => {
+    if (!callout) {
+      return;
+    }
+    const result = bind.override(callout, {
+      children: [paragraph(text("Changed.")), paragraph(text("More."))],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.children?.map((n) => n.data.id)).toEqual([
+        "callout[0]/paragraph[0]",
+        "callout[0]/paragraph[1]",
+      ]);
+      expect(result.data.data.attributes).toEqual(callout.data.attributes);
+    }
+    expect(
+      issueCodes(bind.override(callout, { children: [text("loose")] })),
+    ).toEqual(["invalid_child"]);
+  });
+
+  it("returns the node unchanged for an empty override", () => {
+    if (!callout) {
+      return;
+    }
+    const result = bind.override(callout, {});
+    expect(result.success && result.data).toEqual(callout);
+  });
+});
+
+describe("bind.overrides", () => {
+  const bound = bind.document(tree, { id: "guide" });
+  const document = bound.success ? bound.data : undefined;
+
+  it("accepts overrides that name nodes of the document", () => {
+    if (!document) {
+      return;
+    }
+    const overrides = {
+      "callout[0]": { attributes: { kind: "note" } },
+      install: { children: [text("Installation")] },
+    };
+    const result = bind.overrides(document, overrides);
+    expect(result.success && result.data).toBe(overrides);
+    expect(bind.overrides(document, {}).success).toBe(true);
+  });
+
+  it("reports an unknown node id, a bad override, and the issues of an override", () => {
+    if (!document) {
+      return;
+    }
+    expect(issueCodes(bind.overrides(document, { ghost: {} }))).toEqual([
+      "unknown_reference",
+    ]);
+    expect(issueCodes(bind.overrides(document, { install: 1 }))).toEqual([
+      "not_object",
+    ]);
+    expect(
+      issueCodes(bind.overrides(document, { install: { extra: 1 } })),
+    ).toEqual(["unknown_key"]);
+    expect(
+      issueCodes(bind.overrides(document, { install: { attributes: 1 } })),
+    ).toEqual(["not_object"]);
+    expect(
+      issueCodes(bind.overrides(document, { install: { children: 1 } })),
+    ).toEqual(["not_array"]);
+    const nested = bind.overrides(document, {
+      install: { children: [{ type: "html", value: "x" }] },
+    });
+    expect(issueCodes(nested)).toEqual(["raw_html"]);
+    if (!nested.success) {
+      expect(nested.issues[0]?.path).toEqual(["install", "children", "0"]);
+    }
+    expect(issueCodes(bind.overrides(document, "x"))).toEqual(["not_object"]);
+  });
+
+  it("collects the issues of every entry", () => {
+    if (!document) {
+      return;
+    }
+    expect(
+      issueCodes(bind.overrides(document, { ghost: {}, install: 1 })).sort(),
+    ).toEqual(["not_object", "unknown_reference"]);
+  });
+});

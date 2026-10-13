@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { attributeRule, coerce, readAttributes } from "../src/attribute";
+import {
+  attributeRule,
+  coerce,
+  mergeAttributes,
+  readAttributes,
+} from "../src/attribute";
 import { defineEnum } from "../src/enum";
 import { defineShape } from "../src/shape";
 import { contract } from "./fixture";
@@ -178,5 +183,88 @@ describe("readAttributes", () => {
         [],
       ).references,
     ).toEqual([]);
+  });
+});
+
+describe("mergeAttributes", () => {
+  const current = { kind: "warning", draft: true };
+
+  it("merges valid values over the current attributes without coercion", () => {
+    const read = mergeAttributes(
+      current,
+      { weight: 2 },
+      "callout",
+      shape.kinds.callout,
+      ["attributes"],
+    );
+    expect(read).toEqual({
+      attributes: { kind: "warning", draft: true, weight: 2 },
+      issues: [],
+      references: [],
+    });
+    expect(
+      mergeAttributes(
+        current,
+        { weight: "2" },
+        "callout",
+        shape.kinds.callout,
+        [],
+      ).issues.map((i) => i.code),
+    ).toEqual(["invalid_attribute"]);
+  });
+
+  it("resets, removes, or requires an attribute set to undefined", () => {
+    expect(
+      mergeAttributes(
+        current,
+        { draft: undefined },
+        "callout",
+        shape.kinds.callout,
+        [],
+      ).attributes,
+    ).toEqual({ kind: "warning" });
+    expect(
+      mergeAttributes(
+        current,
+        { kind: undefined },
+        "callout",
+        shape.kinds.callout,
+        [],
+      ).attributes,
+    ).toEqual({ kind: "note", draft: true });
+    const read = mergeAttributes(
+      { value: "x" },
+      { value: undefined },
+      "code",
+      shape.kinds.code,
+      ["attributes"],
+    );
+    expect(read.issues.map((i) => i.code)).toEqual(["missing_attribute"]);
+    expect(read.issues[0]?.path).toEqual(["attributes", "value"]);
+  });
+
+  it("rejects an undeclared name", () => {
+    expect(
+      mergeAttributes(
+        current,
+        { id: "x" },
+        "callout",
+        shape.kinds.callout,
+        [],
+      ).issues.map((i) => i.code),
+    ).toEqual(["unknown_attribute"]);
+  });
+
+  it("notes a url value in reference form", () => {
+    const read = mergeAttributes(
+      { url: "https://x" },
+      { url: "#install" },
+      "link",
+      shape.kinds.link,
+      ["attributes"],
+    );
+    expect(read.references).toEqual([
+      { target: { node: "install" }, path: ["attributes", "url"] },
+    ]);
   });
 });

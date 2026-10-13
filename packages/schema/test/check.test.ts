@@ -9,8 +9,6 @@ describe("defineCheck", () => {
   it("returns true for a valid value of every kind", () => {
     expect(check.contract(contract)).toBe(true);
     expect(check.kind("callout")).toBe(true);
-    expect(check.axis("locale")).toBe(true);
-    expect(check.input({ locale: "fr", platform: "windows" })).toBe(true);
     expect(check.reference("#x")).toBe(true);
     expect(check.override({})).toBe(true);
     expect(check.patch({})).toBe(true);
@@ -22,8 +20,6 @@ describe("defineCheck", () => {
   it("returns false for an invalid value", () => {
     expect(check.contract({})).toBe(false);
     expect(check.kind("ghost")).toBe(false);
-    expect(check.axis("en")).toBe(false);
-    expect(check.input({ locale: "fr" })).toBe(false);
     expect(check.reference("x")).toBe(false);
     expect(check.override({ extra: 1 })).toBe(false);
     expect(check.patch({ id: 1 })).toBe(false);

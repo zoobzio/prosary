@@ -7,9 +7,12 @@ describe("entry", () => {
     expect(Object.keys(entry).sort()).toEqual([
       "SchemaError",
       "defineContract",
+      "index",
       "parseReference",
+      "replace",
       "slug",
       "textOf",
+      "visit",
     ]);
   });
 });
