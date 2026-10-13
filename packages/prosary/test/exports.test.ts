@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import * as core from "@prosary/core";
+import * as html from "@prosary/html";
 import * as parse from "@prosary/parse";
 import * as schema from "@prosary/schema";
 
 import * as root from "../src/index";
+import * as htmlSubpath from "../src/html";
 import * as parseSubpath from "../src/parse";
 
 /* ESM drops a name that more than one module exports in an `export *` set.
@@ -30,9 +32,12 @@ describe("star-export composition", () => {
     }
   });
 
-  it("mirrors parse under its subpath", () => {
+  it("mirrors parse and html under their subpaths", () => {
     for (const name of Object.keys(parse)) {
       expect.soft(parseSubpath, name).toHaveProperty(name);
+    }
+    for (const name of Object.keys(html)) {
+      expect.soft(htmlSubpath, name).toHaveProperty(name);
     }
   });
 });

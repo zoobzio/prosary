@@ -13,6 +13,7 @@
     [
       "prosary",
       "@prosary/core",
+      "@prosary/html",
       "@prosary/kit",
       "@prosary/parse",
       "@prosary/schema"

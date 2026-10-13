@@ -17,6 +17,10 @@
     "./parse": {
       "types": "./.dist/parse.d.mts",
       "import": "./.dist/parse.mjs"
+    },
+    "./html": {
+      "types": "./.dist/html.d.mts",
+      "import": "./.dist/html.mjs"
     }
   },
   "files": [
@@ -31,6 +35,7 @@
   },
   "dependencies": {
     "@prosary/core": "workspace:*",
+    "@prosary/html": "workspace:*",
     "@prosary/parse": "workspace:*",
     "@prosary/schema": "workspace:*"
   }

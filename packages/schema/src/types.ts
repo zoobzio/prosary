@@ -353,6 +353,7 @@ export type Code =
   | "not_boolean"
   | "not_reference"
   | "not_url"
+  | "css_breakout"
   | "out_of_range"
   | "duplicate"
   | "not_exhaustive"
