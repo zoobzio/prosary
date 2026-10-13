@@ -12,12 +12,18 @@ catalogs:
     '@changesets/cli':
       specifier: ^2.31.0
       version: 2.31.1
+    '@types/unist':
+      specifier: ^3.0.3
+      version: 3.0.3
     '@vitest/coverage-v8':
       specifier: ^5.0.3
       version: 5.0.4
     jiti:
       specifier: ^2.7.0
       version: 2.7.0
+    objectively:
+      specifier: ^0.3.0
+      version: 0.3.0
     obuild:
       specifier: ^0.4.44
       version: 0.4.44
@@ -96,7 +102,14 @@ importers:
         specifier: workspace:*
         version: link:../schema
 
-  packages/schema: {}
+  packages/schema:
+    dependencies:
+      '@types/unist':
+        specifier: 'catalog:'
+        version: 3.0.3
+      objectively:
+        specifier: 'catalog:'
+        version: 0.3.0
 
 packages:
 
@@ -589,6 +602,9 @@ packages:
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
 
+  '@types/unist@3.0.3':
+    resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
+
   '@vitest/coverage-v8@5.0.4':
     resolution: {integrity: sha512-P5YcQY8Y6RmoE9xRXI38rT8pssbcubEzqtYTM2XQoxOXMDn04nRaTI1SM8qCl9/NfW3ag9GlzdSXu7IwO5Ft8A==}
     peerDependencies:
@@ -1026,6 +1042,9 @@ packages:
     peerDependenciesMeta:
       encoding:
         optional: true
+
+  objectively@0.3.0:
+    resolution: {integrity: sha512-en0NNm03+7yaz57sb07zEmoYVhWBcVaDy9zcBlLwcJgejyWxQXrm2OFEajwUblJcivQvVCmrDPeoQUM2WEM1eQ==}
 
   obug@3.0.0:
     resolution: {integrity: sha512-5vvB5+W7ePv+p3uqxi+RcW1XAzLW0/hxt3/4X4Lc4qHudzOhmBiBwOY6DRob4WnanAEGvNcLjF+KNOufrUoEQw==}
@@ -1799,6 +1818,8 @@ snapshots:
 
   '@types/node@12.20.55': {}
 
+  '@types/unist@3.0.3': {}
+
   '@vitest/coverage-v8@5.0.4(vitest@5.0.4)':
     dependencies:
       '@bcoe/v8-coverage': 1.0.2
@@ -2139,6 +2160,8 @@ snapshots:
   node-fetch@2.7.0:
     dependencies:
       whatwg-url: 5.0.0
+
+  objectively@0.3.0: {}
 
   obug@3.0.0: {}
 
