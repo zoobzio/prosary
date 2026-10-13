@@ -1,0 +1,43 @@
+{
+  "name": "@prosary/parse",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zoobzio/prosary.git",
+    "directory": "packages/parse"
+  },
+  "type": "module",
+  "main": "./.dist/index.mjs",
+  "types": "./.dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./.dist/index.d.mts",
+      "import": "./.dist/index.mjs"
+    }
+  },
+  "files": [
+    ".dist"
+  ],
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub",
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@types/mdast": "catalog:",
+    "@types/unist": "catalog:",
+    "objectively": "catalog:",
+    "remark-directive": "catalog:",
+    "remark-frontmatter": "catalog:",
+    "remark-gfm": "catalog:",
+    "remark-parse": "catalog:",
+    "unified": "catalog:",
+    "unist-util-visit": "catalog:",
+    "yaml": "catalog:"
+  },
+  "devDependencies": {
+    "@prosary/schema": "workspace:*"
+  }
+}

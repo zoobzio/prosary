@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import * as core from "@prosary/core";
+import * as parse from "@prosary/parse";
 import * as schema from "@prosary/schema";
 
 import * as root from "../src/index";
+import * as parseSubpath from "../src/parse";
 
 /* ESM drops a name that more than one module exports in an `export *` set.
    These tests fail when that happens. */
@@ -25,6 +27,12 @@ describe("star-export composition", () => {
       for (const name of Object.keys(namespace)) {
         expect.soft(root, name).toHaveProperty(name);
       }
+    }
+  });
+
+  it("mirrors parse under its subpath", () => {
+    for (const name of Object.keys(parse)) {
+      expect.soft(parseSubpath, name).toHaveProperty(name);
     }
   });
 });

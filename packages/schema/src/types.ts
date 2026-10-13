@@ -316,14 +316,15 @@ export type Reading = {
 
 /**
  * A bound document. The root keeps its mdast fields. `data` holds the document
- * id and the references the document makes.
+ * id and the references the document makes, with any data the root had, such
+ * as the frontmatter from the parser.
  */
 export type Document<C extends Contract> = {
   type: "root";
   data: {
     id: string;
     references: Target[];
-  };
+  } & Record<string, unknown>;
   children: Node<C>[];
   position?: Position;
 };

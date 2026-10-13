@@ -13,6 +13,10 @@
     ".": {
       "types": "./.dist/index.d.mts",
       "import": "./.dist/index.mjs"
+    },
+    "./parse": {
+      "types": "./.dist/parse.d.mts",
+      "import": "./.dist/parse.mjs"
     }
   },
   "files": [
@@ -27,6 +31,7 @@
   },
   "dependencies": {
     "@prosary/core": "workspace:*",
+    "@prosary/parse": "workspace:*",
     "@prosary/schema": "workspace:*"
   }
 }

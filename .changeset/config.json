@@ -9,7 +9,15 @@
   "commit": false,
   "access": "public",
   "baseBranch": "main",
-  "fixed": [["prosary", "@prosary/core", "@prosary/kit", "@prosary/schema"]],
+  "fixed": [
+    [
+      "prosary",
+      "@prosary/core",
+      "@prosary/kit",
+      "@prosary/parse",
+      "@prosary/schema"
+    ]
+  ],
   "linked": [],
   "updateInternalDependencies": "patch",
   "ignore": []

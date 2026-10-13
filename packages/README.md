@@ -9,8 +9,9 @@ publishes under the one fixed version of the repo.
 | [`prosary`](./prosary)        | `packages/prosary` | The public package. It re-exports the runtime and the contract.      |
 | [`@prosary/core`](./core)     | `packages/core`    | The runtime. It reads a document against a contract for a renderer.  |
 | [`@prosary/kit`](./kit)       | `packages/kit`     | The build kit. It builds a prose package's config into typed output. |
+| [`@prosary/parse`](./parse)   | `packages/parse`   | The parse step. It turns Markdown into an mdast tree for the bind.   |
 | [`@prosary/schema`](./schema) | `packages/schema`  | The contract types and the runtime validation of a document.         |
 
-No package has an API yet. Each holds an empty entry and the scaffold check
-that fails when the first export lands. The framework integrations are in
-[`../integrations`](../integrations).
+The schema and the parser have an API. The other packages hold an empty
+entry and the scaffold check that fails when the first export lands. The
+framework integrations are in [`../integrations`](../integrations).
