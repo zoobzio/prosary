@@ -43,7 +43,7 @@ inspect: ## Check the formatting with oxfmt
 
 clean: ## Remove the build output and the example caches
 	rm -rf .coverage
-	find packages integrations presets examples -maxdepth 2 -name .dist -type d -prune -exec rm -rf {} +
+	find packages integrations examples -maxdepth 2 -name .dist -type d -prune -exec rm -rf {} +
 	find examples -maxdepth 2 \( -name .nuxt -o -name .output \) -type d -prune -exec rm -rf {} +
 
 check: lint typecheck test ## Run lint, typecheck, and test on the existing build output

@@ -1,6 +1,8 @@
 {
   "name": "prosary",
   "version": "0.0.0",
+  "description": "Umbrella package for the prosary runtime",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zoobzio/prosary.git",
@@ -14,13 +16,9 @@
       "types": "./.dist/index.d.mts",
       "import": "./.dist/index.mjs"
     },
-    "./parse": {
-      "types": "./.dist/parse.d.mts",
-      "import": "./.dist/parse.mjs"
-    },
-    "./html": {
-      "types": "./.dist/html.d.mts",
-      "import": "./.dist/html.mjs"
+    "./catalog": {
+      "types": "./.dist/catalog.d.mts",
+      "import": "./.dist/catalog.mjs"
     }
   },
   "files": [
@@ -34,9 +32,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@prosary/catalog": "workspace:*",
     "@prosary/core": "workspace:*",
-    "@prosary/html": "workspace:*",
-    "@prosary/parse": "workspace:*",
     "@prosary/schema": "workspace:*"
   }
 }

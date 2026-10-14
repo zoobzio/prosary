@@ -1,6 +1,8 @@
 {
   "name": "@prosary/schema",
   "version": "0.0.0",
+  "description": "Message contract types and runtime validation",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zoobzio/prosary.git",
@@ -26,7 +28,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@types/unist": "catalog:",
+    "@formatjs/icu-messageformat-parser": "catalog:",
     "objectively": "catalog:"
   }
 }

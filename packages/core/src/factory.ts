@@ -1,383 +1,481 @@
 import type {
-  Contract,
-  Document,
-  Issue,
-  Layer,
-  Node,
-  Overlay,
-  Patch,
+  Ast,
+  Bundle,
+  Definition,
+  Kind,
+  Locale,
+  Key,
   Schema,
-  Target,
 } from "@prosary/schema";
-import type {
-  Config,
-  DocumentChange,
-  Event,
-  Events,
-  Listener,
-  Options,
-  PatchChange,
-  Prosary,
-} from "./types";
+import type { Formatters } from "intl-messageformat";
+import type { Config, Prosary, Options, Resolver } from "./types";
 
-import { copy, equals, keys } from "objectively";
-import { SchemaError, index, parseReference, replace } from "@prosary/schema";
-
+import { defineSchema } from "@prosary/schema";
+import { IntlMessageFormat } from "intl-messageformat";
 import {
-  InvalidDocumentError,
-  InvalidLayerError,
-  InvalidPatchError,
-  UnknownDocumentError,
+  InvalidBundleError,
+  InvalidConventionError,
+  InvalidLocaleError,
+  InvalidTimeZoneError,
+  UnknownFormatError,
   reframe,
 } from "./error";
 
 /**
- * Makes a {@link Prosary} store over a schema and a state container. The
- * schema is the contract. The container holds the base documents and the
- * patch. The store reads and writes the container through the `options`
- * middleware.
+ * Builds the runtime {@link Prosary} service over a state container, for the
+ * contract `@prosary/kit` built. The container's locale and bundle are
+ * validated against the contract up front.
  *
- * A read gives the base document with the overrides of the patch applied.
+ * Every read and write goes through `proxy`, so the caller decides whether
+ * state is plain (tests, node) or a reactive proxy (Vue); `options` can
+ * intercept each read and write on the way through. A message is looked up
+ * and formatted when it is called, never ahead of time — so a call made
+ * inside a reactive scope re-runs when `apply` or `load` changes the state.
  *
- * @param schema - The schema of the contract, from `defineContract`.
- * @param config - The state container.
- * @param options - The middleware for reads and writes of `config`.
- * @returns The store.
- * @throws InvalidDocumentError when a stored document violates the contract
- *   or is stored under an id other than its own.
- * @throws InvalidPatchError when the stored patch violates the contract or
- *   names a document or a node the store does not have.
+ * The service never fetches. A bundle arrives through `apply` (become a
+ * locale) or `load` (add to the active one), from wherever the caller keeps
+ * them.
+ *
+ * @param definition - The contract: the kit's `contract` export.
+ * @param config - The caller-owned container: active locale and its messages.
+ * Values are formatted the same way wherever they appear: a message's
+ * `{at, date}` and the `date` helper share the contract's named formats, the
+ * container's time zone and convention, and one set of `Intl` formatters.
+ *
+ * @param options - Middleware over `config`, and how messages are formatted.
+ * @returns A {@link Prosary} service bound to the container.
+ * @throws InvalidLocaleError when the container's locale is not in the contract.
+ * @throws InvalidBundleError when the container's messages step outside it.
+ * @throws InvalidTimeZoneError when the container's time zone is not a zone.
+ * @throws InvalidConventionError when the container's convention is not a tag.
  */
-export const makeProsary = <C extends Contract>(
-  schema: Schema<C>,
-  config: Config<C>,
-  options: Options<C> = {},
-): Prosary<C> => {
+export const makeProsary = <D extends Definition>(
+  definition: D,
+  config: Config<D>,
+  options: Options<D> = {},
+): Prosary<D> => {
   /**
-   * The listeners of each event, in subscription order.
+   * The active state, fronted by get/set middleware. The container stays the
+   * source of truth; a missing middleware is a passthrough.
    */
-  const listeners: { [E in Event<C>]: Set<Listener<C, E>> } = {
-    document: new Set(),
-    patch: new Set(),
-    change: new Set(),
+  const proxy: Config<D> = {
+    get locale() {
+      const through = options.get?.config?.locale;
+      if (through) {
+        return through(config.locale);
+      }
+      return config.locale;
+    },
+    set locale(value) {
+      const through = options.set?.config?.locale;
+      if (through) {
+        config.locale = through(value);
+        return;
+      }
+      config.locale = value;
+    },
+    get messages() {
+      const through = options.get?.config?.messages;
+      if (through) {
+        return through(config.messages);
+      }
+      return config.messages;
+    },
+    set messages(value) {
+      const through = options.set?.config?.messages;
+      if (through) {
+        config.messages = through(value);
+        return;
+      }
+      config.messages = value;
+    },
+    get timeZone() {
+      const through = options.get?.config?.timeZone;
+      if (through) {
+        return through(config.timeZone);
+      }
+      return config.timeZone;
+    },
+    set timeZone(value) {
+      const through = options.set?.config?.timeZone;
+      if (through) {
+        config.timeZone = through(value);
+        return;
+      }
+      config.timeZone = value;
+    },
+    get convention() {
+      const through = options.get?.config?.convention;
+      if (through) {
+        return through(config.convention);
+      }
+      return config.convention;
+    },
+    set convention(value) {
+      const through = options.set?.config?.convention;
+      if (through) {
+        config.convention = through(value);
+        return;
+      }
+      config.convention = value;
+    },
   };
 
-  /**
-   * Calls the listeners of an event with the arguments. The function iterates
-   * over a copy, so a listener can unsubscribe itself or another listener
-   * during the call.
-   */
-  const emit = <E extends Event<C>>(event: E, ...args: Events<C>[E]): void => {
-    for (const listener of [...listeners[event]]) {
-      listener(...args);
+  const schema: Schema<D> = defineSchema(definition);
+
+  /** Proves a time zone, `undefined` — the runtime's own — always passing. */
+  const assertTimeZone = (timeZone: string | undefined) => {
+    if (timeZone !== undefined) {
+      reframe(InvalidTimeZoneError, () => schema.assert.timeZone(timeZone));
     }
   };
 
+  /** Proves a convention, `undefined` — the locale's own — always passing. */
+  const assertConvention = (convention: string | undefined) => {
+    if (convention !== undefined) {
+      reframe(InvalidConventionError, () =>
+        schema.assert.convention(convention),
+      );
+    }
+  };
+
+  reframe(InvalidLocaleError, () => schema.assert.locale(proxy.locale));
+  reframe(InvalidBundleError, () => schema.assert.bundle(proxy.messages));
+  assertTimeZone(proxy.timeZone);
+  assertConvention(proxy.convention);
+
   /**
-   * Subscribes a listener to an event and returns the function that removes
-   * it.
+   * Every named format: FormatJS's defaults under the contract's own. What a
+   * message's `{n, number, price}` and a helper's `"price"` both resolve
+   * through.
    */
-  const on = <E extends Event<C>>(
-    event: E,
-    listener: Listener<C, E>,
-  ): (() => void) => {
-    listeners[event].add(listener);
-    return () => {
-      listeners[event].delete(listener);
-    };
+  const formats = {
+    number: {
+      ...IntlMessageFormat.formats.number,
+      ...definition.formats?.number,
+    },
+    date: { ...IntlMessageFormat.formats.date, ...definition.formats?.date },
+    time: { ...IntlMessageFormat.formats.time, ...definition.formats?.time },
   };
 
   /**
-   * Whether an event or `change` has a listener. The setters skip the work of
-   * a change object when nothing listens.
+   * Every `Intl` formatter the service has built, by constructor, locale and
+   * options. Construction is the slow part of formatting, so each is built
+   * once and shared by the messages and the helpers.
    */
-  const heard = (event: "document" | "patch"): boolean =>
-    listeners[event].size > 0 || listeners.change.size > 0;
+  const built = new Map<string, unknown>();
+
+  /** The memoized `Intl` formatter for a locale and options. */
+  const intl = <T>(
+    Constructor: new (locale: string, options: never) => T,
+    locale: string,
+    formatOptions: object | undefined,
+  ): T => {
+    const key = `${Constructor.name}|${locale}|${JSON.stringify(formatOptions ?? {})}`;
+    let found = built.get(key) as T | undefined;
+    if (found === undefined) {
+      found = new Constructor(locale, formatOptions as never);
+      built.set(key, found);
+    }
+    return found;
+  };
+
+  /** The locale values are formatted by: the convention, else the locale. */
+  const convention = (): string => proxy.convention ?? proxy.locale;
 
   /**
-   * Returns the ids of the documents whose overrides differ between two
-   * patches.
+   * Date and time options under the active time zone; options that name
+   * their own keep it.
    */
-  const touched = (before: Patch, after: Patch): string[] => {
-    const ids = new Set([
-      ...keys(before.documents ?? {}),
-      ...keys(after.documents ?? {}),
-    ]);
-    return [...ids].filter(
-      (id) => !equals(before.documents?.[id], after.documents?.[id]),
+  const zoned = (
+    formatOptions: Intl.DateTimeFormatOptions | undefined,
+  ): Intl.DateTimeFormatOptions | undefined => {
+    const timeZone = proxy.timeZone;
+    if (timeZone === undefined) {
+      return formatOptions;
+    }
+    return { timeZone, ...formatOptions };
+  };
+
+  /** The number formatter for options, by the active convention. */
+  const numbers = (formatOptions: object | undefined): Intl.NumberFormat => {
+    return intl(Intl.NumberFormat, convention(), formatOptions);
+  };
+
+  /** The date formatter for options, by the active convention and zone. */
+  const dates = (
+    formatOptions: Intl.DateTimeFormatOptions | undefined,
+  ): Intl.DateTimeFormat => {
+    return intl(Intl.DateTimeFormat, convention(), zoned(formatOptions));
+  };
+
+  /**
+   * The formatters every message formats its values through, in place of
+   * FormatJS's own: numbers and dates follow the convention and the time
+   * zone active at the moment of the call, whatever locale the message was
+   * compiled for. Plural rules stay with the message's locale — which form a
+   * message takes is a matter of its language, not of the reader's region.
+   */
+  const formatters: Formatters = {
+    getNumberFormat: (_locales, formatOptions) => numbers(formatOptions),
+    getDateTimeFormat: (_locales, formatOptions) => dates(formatOptions),
+    getPluralRules: (_locales, formatOptions) =>
+      intl(Intl.PluralRules, proxy.locale, formatOptions),
+  };
+
+  /**
+   * The formatter of each compiled message, per locale, keyed by the AST
+   * itself — a bundle that is replaced takes its formatters with it.
+   */
+  const compiled = new Map<string, WeakMap<Ast, IntlMessageFormat>>();
+
+  /** The memoized formatter for a compiled message in a locale. */
+  const formatter = (locale: Locale<D>, ast: Ast): IntlMessageFormat => {
+    let cache = compiled.get(locale);
+    if (cache === undefined) {
+      cache = new WeakMap();
+      compiled.set(locale, cache);
+    }
+    let found = cache.get(ast);
+    if (found === undefined) {
+      // FormatJS types its number options more narrowly than the platform's.
+      found = new IntlMessageFormat(ast, locale, formats as never, {
+        formatters,
+      });
+      cache.set(ast, found);
+    }
+    return found;
+  };
+
+  /** The compiled message the active locale holds under a key, if any. */
+  const lookup = (key: Key<D>): Ast | undefined => {
+    const messages = proxy.messages;
+    if (!Object.hasOwn(messages, key)) {
+      return undefined;
+    }
+    return messages[key];
+  };
+
+  const locales = () => definition.locales;
+
+  const has = (key: Key<D>) => lookup(key) !== undefined;
+
+  /**
+   * Formats a message in the active locale: shared tag handlers under the
+   * call's own values, the formatter's parts joined to one string.
+   */
+  const render = (key: Key<D>, values?: unknown): string => {
+    const locale = proxy.locale;
+    const ast = lookup(key);
+    if (ast === undefined) {
+      return options.onMissing?.(key, locale) ?? key;
+    }
+    try {
+      const result = formatter(locale, ast).format<string>({
+        ...options.tags,
+        ...(typeof values === "object" ? values : undefined),
+      });
+      return Array.isArray(result) ? result.join("") : result;
+    } catch (error) {
+      if (options.onError) {
+        return options.onError(error, key, locale);
+      }
+      throw error;
+    }
+  };
+
+  // Both signatures of `Format` come to a key and its values: written out,
+  // or held as one message — a key alone, or a key and values in a list. The
+  // types prove the pairing at the call site; in here it is only arguments.
+  const resolve = (head: unknown, values?: unknown): string => {
+    if (Array.isArray(head)) {
+      return render(head[0], head[1]);
+    }
+    return render(head as Key<D>, values);
+  };
+
+  const format: Prosary<D>["format"] = resolve;
+
+  /**
+   * The groups of the contract — every prefix messages nest under, the root
+   * as the empty one — each with the names directly inside it. A dot in a
+   * message key is a level: `checkout.cart.title` sits in `checkout.cart.`.
+   */
+  const groups = new Map<string, Set<string>>();
+  for (const key of definition.messages) {
+    let prefix = "";
+    for (const segment of key.split(".")) {
+      let names = groups.get(prefix);
+      if (names === undefined) {
+        names = new Set();
+        groups.set(prefix, names);
+      }
+      names.add(segment);
+      prefix = `${prefix}${segment}.`;
+    }
+  }
+
+  /**
+   * One function per message and one object per group, made on first access
+   * and kept, so a resolver hands out stable references. A property that is
+   * neither reads as `undefined`: the resolver stays inert to whatever
+   * probes it (`then`, framework internals) rather than answering as a
+   * message.
+   *
+   * The root is also a function — `$t("checkout.cart.title", values)` — that
+   * formats by key, exactly as `format` does, written out or from a message
+   * held as data; a group is only an object.
+   */
+  const functions = new Map<string, (values?: unknown) => string>();
+  const levels = new Map<string, object>();
+  const level = (prefix: string): object => {
+    const kept = levels.get(prefix);
+    if (kept !== undefined) {
+      return kept;
+    }
+    const names = groups.get(prefix) ?? new Set<string>();
+    const holds = (property: string | symbol): property is string =>
+      typeof property === "string" && names.has(property);
+    const root = prefix === "";
+    // Only a function target can be called; an arrow has no own property a
+    // proxy is bound to report.
+    const target: object = root ? () => undefined : Object.create(null);
+    const made = new Proxy(target, {
+      apply: (_target, _self, [head, values]: unknown[]) =>
+        resolve(head, values),
+      get: (_target, property) => {
+        if (!holds(property)) {
+          return undefined;
+        }
+        const key = `${prefix}${property}`;
+        if (!schema.check.key(key)) {
+          return level(`${key}.`);
+        }
+        let found = functions.get(key);
+        if (found === undefined) {
+          found = (values) => render(key, values);
+          functions.set(key, found);
+        }
+        return found;
+      },
+      has: (_target, property) => holds(property),
+      ownKeys: () => [...names],
+      getOwnPropertyDescriptor: (_target, property) => {
+        if (!holds(property)) {
+          return undefined;
+        }
+        return { enumerable: true, configurable: true };
+      },
+      set: () => false,
+      defineProperty: () => false,
+      deleteProperty: () => false,
+    });
+    levels.set(prefix, made);
+    return made;
+  };
+  const resolver = level("") as Resolver<D>;
+
+  const createResolver = () => resolver;
+
+  /**
+   * Becomes a locale. Both arguments are proven before anything is written,
+   * so a rejected call leaves the active state as it was. The convention is
+   * cleared: it was chosen for the locale being left, and values formatted
+   * by one language's conventions inside another's messages read as a bug.
+   */
+  const apply = (locale: Locale<D>, bundle: Bundle<D>) => {
+    reframe(InvalidLocaleError, () => schema.assert.locale(locale));
+    reframe(InvalidBundleError, () => schema.assert.bundle(bundle));
+    proxy.messages = bundle;
+    proxy.locale = locale;
+    proxy.convention = undefined;
+  };
+
+  /**
+   * Adds to the active locale, replacing the held bundle rather than writing
+   * into it so reactive reads re-resolve.
+   */
+  const load = (bundle: Bundle<D>) => {
+    reframe(InvalidBundleError, () => schema.assert.bundle(bundle));
+    proxy.messages = { ...proxy.messages, ...bundle };
+  };
+
+  const setTimeZone = (timeZone: string | undefined) => {
+    assertTimeZone(timeZone);
+    proxy.timeZone = timeZone;
+  };
+
+  const setConvention = (next: string | undefined) => {
+    assertConvention(next);
+    proxy.convention = next;
+  };
+
+  /**
+   * The options a helper formats by: a name resolves through the contract's
+   * formats, options pass through, and neither is the kind's default.
+   */
+  const style = <O extends object>(
+    kind: Kind,
+    format: unknown,
+  ): O | undefined => {
+    if (typeof format !== "string") {
+      return format as O | undefined;
+    }
+    const named: Record<string, object> = formats[kind];
+    if (!Object.hasOwn(named, format)) {
+      throw new UnknownFormatError(kind, format);
+    }
+    return named[format] as O;
+  };
+
+  const number: Prosary<D>["number"] = (value, format) => {
+    return numbers(style("number", format)).format(value);
+  };
+
+  const date: Prosary<D>["date"] = (value, format) => {
+    return dates(style("date", format)).format(value);
+  };
+
+  const time: Prosary<D>["time"] = (value, format) => {
+    return dates(style("time", format ?? "medium")).format(value);
+  };
+
+  const relative: Prosary<D>["relative"] = (value, unit, formatOptions) => {
+    return intl(Intl.RelativeTimeFormat, convention(), formatOptions).format(
+      value,
+      unit,
     );
   };
 
-  /**
-   * The id that `add` or `remove` wrote, for the change object of the
-   * `documents` setter. The setter cannot tell which id changed from the
-   * records alone when a write replaces a document in place, so the writers
-   * set it before they assign.
-   */
-  let writing: string | undefined;
-
-  /**
-   * The active state. A read gets the value from the container and passes it
-   * to the matching `options.get` middleware. A write passes the value to the
-   * matching `options.set` middleware, stores the result in the container, and
-   * then emits the event of the field and `change` with one change object.
-   */
-  const proxy: Config<C> = {
-    get documents() {
-      const through = options.get?.config?.documents;
-      if (through) {
-        return through(config.documents);
-      }
-      return config.documents;
-    },
-    set documents(value) {
-      const through = options.set?.config?.documents;
-      const listening = heard("document");
-      const before = config.documents;
-      const id = writing;
-      config.documents = through ? through(value) : value;
-      if (!listening || id === undefined) {
-        return;
-      }
-      const change: DocumentChange<C> = {
-        field: "documents",
-        id,
-        before: before[id],
-        after: config.documents[id],
-      };
-      emit("document", change);
-      emit("change", change);
-    },
-    get patch() {
-      const through = options.get?.config?.patch;
-      if (through) {
-        return through(config.patch);
-      }
-      return config.patch;
-    },
-    set patch(value) {
-      const through = options.set?.config?.patch;
-      const listening = heard("patch");
-      const before = config.patch;
-      config.patch = through ? through(value) : value;
-      if (!listening) {
-        return;
-      }
-      const change: PatchChange = {
-        field: "patch",
-        before,
-        after: config.patch,
-        documents: touched(before, config.patch),
-      };
-      emit("patch", change);
-      emit("change", change);
-    },
+  const list: Prosary<D>["list"] = (items, formatOptions) => {
+    return intl(Intl.ListFormat, convention(), formatOptions).format(items);
   };
 
-  /**
-   * Checks a document against the contract and checks that it has an id.
-   * Throws {@link InvalidDocumentError} on a failure.
-   */
-  const checkDocument = (document: unknown, id?: string): void => {
-    reframe(InvalidDocumentError, () => schema.assert.document(document));
-    const issues: Issue[] = [];
-    const own = schema.check.document(document) ? document.data.id : "";
-    if (own === "") {
-      issues.push({
-        code: "empty",
-        message: "Document must have an id.",
-        path: ["data", "id"],
-        received: own,
-      });
-    } else if (id !== undefined && id !== own) {
-      issues.push({
-        code: "type_mismatch",
-        message: `Document '${own}' is stored under '${id}'.`,
-        path: ["data", "id"],
-        expected: id,
-        received: own,
-      });
+  const name: Prosary<D>["name"] = (code, type) => {
+    try {
+      return intl(Intl.DisplayNames, convention(), { type }).of(code) ?? code;
+    } catch {
+      // A code malformed for its type has no name either.
+      return code;
     }
-    if (issues.length > 0) {
-      throw new InvalidDocumentError(issues);
-    }
-  };
-
-  /**
-   * Checks an overlay against the stored documents. Each document id must name
-   * a stored document. Each override must apply to its node. Throws a
-   * `Semantic` error that holds every issue.
-   */
-  const checkOverlay = (
-    Semantic: new (issues: Issue[]) => SchemaError,
-    overlay: Overlay | undefined,
-  ): void => {
-    const issues: Issue[] = [];
-    const documents = proxy.documents;
-    for (const [id, overrides] of Object.entries(overlay ?? {})) {
-      const document = documents[id];
-      if (document === undefined) {
-        issues.push({
-          code: "unknown_reference",
-          message: `Document id '${id}' names no stored document.`,
-          path: ["documents", id],
-          received: id,
-        });
-        continue;
-      }
-      const checked = schema.meta.bind.overrides(document, overrides);
-      if (!checked.success) {
-        issues.push(
-          ...checked.issues.map((issue) => ({
-            ...issue,
-            path: ["documents", id, ...(issue.path ?? [])],
-          })),
-        );
-      }
-    }
-    if (issues.length > 0) {
-      throw new Semantic(issues);
-    }
-  };
-
-  // Checks the stored documents and the stored patch.
-  for (const [id, document] of Object.entries(proxy.documents)) {
-    checkDocument(document, id);
-  }
-  reframe(InvalidPatchError, () => schema.assert.patch(proxy.patch));
-  checkOverlay(InvalidPatchError, proxy.patch.documents);
-
-  /**
-   * Returns the ids of the documents.
-   */
-  const documents = (): string[] => keys(proxy.documents);
-
-  /**
-   * Returns the stored document of an id. Throws {@link UnknownDocumentError}
-   * when no document has the id.
-   */
-  const stored = (id: string): Document<C> => {
-    const document = proxy.documents[id];
-    if (document === undefined) {
-      throw new UnknownDocumentError(id);
-    }
-    return document;
-  };
-
-  /**
-   * Returns the active document of an id: the stored document with each
-   * override of the patch applied to its node. The overrides passed the
-   * checks when they were stored, so a failure here is a defect, and the
-   * function throws the schema error.
-   */
-  const document = (id: string): Document<C> => {
-    const base = stored(id);
-    const overrides = proxy.patch.documents?.[id] ?? {};
-    let active = base;
-    for (const [node, override] of Object.entries(overrides)) {
-      active = replace<C, Document<C>>(active, node, (target) => {
-        const applied = schema.meta.bind.override(target, override);
-        if (!applied.success) {
-          throw new SchemaError(applied.issues);
-        }
-        return applied.data;
-      });
-    }
-    return active;
-  };
-
-  /**
-   * Returns the active node of an id in a document.
-   */
-  const node = (id: string, target: string): Node<C> | undefined =>
-    index(document(id)).get(target);
-
-  /**
-   * Resolves a reference to a document or a node.
-   */
-  const resolve = (
-    reference: string | Target,
-    from?: string,
-  ): Document<C> | Node<C> | undefined => {
-    const target =
-      typeof reference === "string" ? parseReference(reference) : reference;
-    const id = target?.document ?? from;
-    if (target === undefined || id === undefined || !(id in proxy.documents)) {
-      return undefined;
-    }
-    return target.node === undefined ? document(id) : node(id, target.node);
-  };
-
-  /**
-   * Stores a document under its id. Throws {@link InvalidDocumentError} when
-   * the document is invalid.
-   */
-  const add = (candidate: Document<C>): void => {
-    checkDocument(candidate);
-    writing = candidate.data.id;
-    proxy.documents = { ...proxy.documents, [candidate.data.id]: candidate };
-    writing = undefined;
-  };
-
-  /**
-   * Removes the document of an id. Throws {@link UnknownDocumentError} when no
-   * document has the id.
-   */
-  const remove = (id: string): void => {
-    stored(id);
-    const rest = { ...proxy.documents };
-    delete rest[id];
-    writing = id;
-    proxy.documents = rest;
-    writing = undefined;
-  };
-
-  /**
-   * Merges a patch into the stored patch. An override replaces the stored
-   * override of the same node. An identity of the patch replaces the stored
-   * one. Throws {@link InvalidPatchError} when the patch is invalid.
-   */
-  const update = (patch: Patch): void => {
-    reframe(InvalidPatchError, () => schema.assert.patch(patch));
-    checkOverlay(InvalidPatchError, patch.documents);
-    const current = proxy.patch;
-    const merged: Overlay = { ...current.documents };
-    for (const [id, overrides] of Object.entries(patch.documents ?? {})) {
-      merged[id] = { ...merged[id], ...overrides };
-    }
-    proxy.patch = { ...current, ...patch, documents: merged };
-  };
-
-  /**
-   * Checks a layer against the contract and the documents. Throws
-   * {@link InvalidLayerError} when the layer is invalid.
-   */
-  const create = (layer: Layer): Layer => {
-    reframe(InvalidLayerError, () => schema.assert.layer(layer));
-    checkOverlay(InvalidLayerError, layer.documents);
-    return layer;
-  };
-
-  /**
-   * Stores a copy of a layer as the patch. Throws {@link InvalidLayerError}
-   * when the layer is invalid.
-   */
-  const apply = (layer: Layer): void => {
-    proxy.patch = copy(create(layer));
   };
 
   return {
     config: proxy,
     schema,
-    documents,
-    document,
-    node,
-    resolve,
-    add,
-    remove,
-    update,
+    locales,
+    has,
+    format,
+    createResolver,
     apply,
-    create,
-    on,
+    load,
+    setTimeZone,
+    setConvention,
+    number,
+    date,
+    time,
+    relative,
+    list,
+    name,
   };
 };

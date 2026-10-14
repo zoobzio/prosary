@@ -1,109 +1,87 @@
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { SchemaError } from "../src/error";
-import { defineContract } from "../src/schema";
-import type { Attributes, Document, Kind, Node, Role } from "../src/types";
-import { contract, tree } from "./fixture";
+import { defineSchema } from "../src/schema";
 
-const schema = defineContract(contract);
+const schema = defineSchema({
+  locale: "en",
+  locales: ["en", "fr"],
+  messages: ["greeting", "title"],
+} as const);
 
-describe("defineContract", () => {
-  it("returns the base, meta, bind, and validator families", () => {
-    expect(Object.keys(schema).sort()).toEqual([
-      "assert",
-      "base",
-      "bind",
-      "check",
-      "inspect",
-      "meta",
-      "parse",
+/** The issues of the SchemaError a call must throw. */
+const issues = (run: () => void) => {
+  try {
+    run();
+  } catch (error) {
+    expect(error).toBeInstanceOf(SchemaError);
+    return (error as SchemaError).issues;
+  }
+  throw new Error("did not throw");
+};
+
+describe("defineSchema", () => {
+  it("keeps the definition it was derived from", () => {
+    expect(schema.definition.locale).toBe("en");
+  });
+
+  it("checks locales and messages against the contract", () => {
+    expect(schema.check.locale("fr")).toBe(true);
+    expect(schema.check.locale("de")).toBe(false);
+    expect(schema.check.locale(7)).toBe(false);
+    expect(schema.check.key("title")).toBe(true);
+    expect(schema.check.key("toString")).toBe(false);
+  });
+
+  it("accepts a bundle holding any part of the contract", () => {
+    expect(schema.check.bundle({})).toBe(true);
+    expect(
+      schema.check.bundle({ title: [{ type: 0, value: "Welcome" }] }),
+    ).toBe(true);
+  });
+
+  it("rejects a bundle that is not a record", () => {
+    expect(schema.check.bundle(null)).toBe(false);
+    expect(schema.check.bundle([])).toBe(false);
+  });
+
+  it("reports every entry outside the contract or not compiled", () => {
+    expect(
+      issues(() =>
+        schema.assert.bundle({
+          title: "Welcome",
+          greeting: [{ value: "no type" }],
+          retired: [],
+        }),
+      ),
+    ).toEqual([
+      { message: "is not a compiled message", path: ["title"] },
+      { message: "is not a compiled message", path: ["greeting"] },
+      { message: "is not a message of the contract", path: ["retired"] },
     ]);
   });
 
-  it("keeps the source contract as base", () => {
-    expect(schema.base).toBe(contract);
+  it("checks a time zone and a convention against the runtime", () => {
+    expect(schema.check.timeZone("Europe/Paris")).toBe(true);
+    expect(schema.check.timeZone("UTC")).toBe(true);
+    expect(schema.check.timeZone("Mars/Olympus")).toBe(false);
+    expect(schema.check.timeZone(undefined)).toBe(false);
+    expect(schema.check.convention("en-GB-u-hc-h23")).toBe(true);
+    expect(schema.check.convention("not a locale")).toBe(false);
+    expect(schema.check.convention("")).toBe(false);
+    expect(() => schema.assert.timeZone("Mars/Olympus")).toThrow(
+      '"Mars/Olympus" is not an IANA time zone',
+    );
+    expect(() => schema.assert.convention(7)).toThrow(SchemaError);
   });
 
-  it("exposes the document bind", () => {
-    expect(schema.bind).toBe(schema.meta.bind.document);
-    const result = schema.bind(tree, { id: "guide" });
-    expect(result.success).toBe(true);
-  });
-
-  it("wires check, assert, parse, and inspect off the same contract", () => {
-    expect(schema.check.document(tree)).toBe(true);
-    expect(() => schema.assert.kind("callout")).not.toThrow();
-    expect(schema.parse.kind("callout")).toBe("callout");
-    expect(schema.inspect.reference("nope").success).toBe(false);
-  });
-
-  it("validates the contract at construction", () => {
-    expect(() =>
-      defineContract({
-        kinds: {
-          a: { match: { directive: "x" }, level: "block", content: "none" },
-          b: { match: { directive: "x" }, level: "block", content: "none" },
-        },
-      }),
-    ).toThrow(SchemaError);
-  });
-
-  it("constructs cleanly for a minimal contract", () => {
-    expect(() => defineContract({ kinds: {} })).not.toThrow();
-  });
-});
-
-describe("types", () => {
-  type C = typeof contract;
-
-  it("narrows the names from the contract", () => {
-    expectTypeOf<Kind<C>>().toEqualTypeOf<
-      | "text"
-      | "emphasis"
-      | "link"
-      | "badge"
-      | "title"
-      | "heading"
-      | "paragraph"
-      | "code"
-      | "blockquote"
-      | "callout"
-      | "rule"
-    >();
-    expectTypeOf<Role<C, "callout">>().toEqualTypeOf<
-      "border" | "marker" | "text"
-    >();
-    expectTypeOf<Role<C, "text">>().toEqualTypeOf<never>();
-  });
-
-  it("types the attributes with required and optional members", () => {
-    type Callout = Attributes<C, "callout">;
-    expectTypeOf<keyof Callout>().toEqualTypeOf<
-      "kind" | "draft" | "weight" | "accent"
-    >();
-    expectTypeOf<Callout["kind"]>().toEqualTypeOf<"note" | "warning">();
-    expectTypeOf<Callout["draft"]>().toEqualTypeOf<boolean | undefined>();
-    expectTypeOf<Callout["weight"]>().toEqualTypeOf<number | undefined>();
-    expectTypeOf<Callout["accent"]>().toEqualTypeOf<
-      `{${string}}` | undefined
-    >();
-    expectTypeOf<{ kind: "note" }>().toMatchTypeOf<Callout>();
-    expectTypeOf<{ draft: true }>().not.toMatchTypeOf<Callout>();
-    type Link = Attributes<C, "link">;
-    expectTypeOf<Link["url"]>().toEqualTypeOf<string>();
-    expectTypeOf<Link["title"]>().toEqualTypeOf<string | undefined>();
-    expectTypeOf<keyof Attributes<C, "paragraph">>().toEqualTypeOf<never>();
-  });
-
-  it("narrows a parsed document and node", () => {
-    const document = schema.parse.document(tree);
-    expectTypeOf(document).toEqualTypeOf<Document<C>>();
-    const node = schema.parse.node({ type: "paragraph", children: [] });
-    expectTypeOf(node).toEqualTypeOf<Node<C>>();
-    const callout = node as Node<C, "callout">;
-    expectTypeOf(callout.data.attributes.kind).toEqualTypeOf<
-      "note" | "warning"
-    >();
-    expectTypeOf(callout.data.kind).toEqualTypeOf<"callout">();
+  it("throws a SchemaError naming the path of each issue", () => {
+    expect(() => schema.assert.bundle({ retired: [] })).toThrow(
+      "retired: is not a message of the contract",
+    );
+    expect(() => schema.assert.locale("de")).toThrow(
+      '"de" is not a locale of the contract',
+    );
+    expect(() => schema.assert.key("nope")).toThrow(SchemaError);
   });
 });

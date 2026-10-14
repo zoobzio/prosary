@@ -1,6 +1,8 @@
 {
   "name": "@prosary/core",
   "version": "0.0.0",
+  "description": "The prosary runtime service — deliver, resolve and format messages",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zoobzio/prosary.git",
@@ -26,10 +28,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@prosary/schema": "workspace:*",
-    "objectively": "catalog:"
+    "@prosary/schema": "workspace:*"
   },
   "devDependencies": {
-    "@prosary/parse": "workspace:*"
+    "@prosary/kit": "workspace:*",
+    "@formatjs/icu-messageformat-parser": "catalog:",
+    "intl-messageformat": "catalog:"
   }
 }

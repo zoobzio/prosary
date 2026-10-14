@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "types": ["node", "@nuxt/nitro-server"],
+    "paths": {
+      "#app": ["./src/stubs/app.d.ts"],
+      "#imports": ["./src/stubs/imports.d.ts"],
+      "#build/prosary/index.mjs": ["./src/stubs/build/prosary/index.d.mts"],
+      "#build/prosary/bundles.mjs": ["./src/stubs/build/prosary/bundles.d.mts"]
+    }
+  },
+  "include": ["src", "test"]
+}

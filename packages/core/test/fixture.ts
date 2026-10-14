@@ -1,111 +1,104 @@
-import type { Contract, Document } from "@prosary/schema";
+import type { Ast } from "@prosary/schema";
 
-import { defineParser } from "@prosary/parse";
-import { defineContract } from "@prosary/schema";
+import { compile } from "@prosary/kit";
 
-/**
- * A contract for the test suites: the standard kinds the sources use, a
- * container directive with typed attributes, and a leaf directive.
- */
-export const contract = {
-  kinds: {
-    text: {
-      match: { type: "text" },
-      level: "inline",
-      content: "none",
-      attributes: { value: { type: "string" } },
-    },
-    emphasis: {
-      match: { type: "emphasis" },
-      level: "inline",
-      content: "inline",
-    },
-    link: {
-      match: { type: "link" },
-      level: "inline",
-      content: "inline",
-      attributes: {
-        url: { type: "url", protocols: ["https", "doc"] },
-        title: { type: "string", required: false },
-      },
-    },
-    heading: {
-      match: { type: "heading" },
-      level: "block",
-      content: "inline",
-      attributes: { depth: { type: "number", min: 1, max: 3 } },
-    },
-    paragraph: {
-      match: { type: "paragraph" },
-      level: "block",
-      content: "inline",
-    },
-    callout: {
-      match: { directive: "callout" },
-      level: "block",
-      content: "block",
-      attributes: {
-        kind: { type: "enum", values: ["note", "warning"], default: "note" },
-      },
-    },
-    rule: { match: { directive: "rule" }, level: "block", content: "none" },
-  },
-} as const satisfies Contract;
+/** What each fixture message takes — the shape the kit declares. */
+interface Arguments {
+  greeting: { name: string | number };
+  title: Record<never, never>;
+  inbox: { count: number };
+  terms: { link: (chunks: string[]) => string };
+  price: { amount: number };
+  seen: { at: Date | number };
+}
 
-export type C = typeof contract;
-
-/** The schema of the fixture contract. */
-export const schema = defineContract(contract);
-
-const { parse } = defineParser();
-
-/** Parses and binds a Markdown source into a document. */
-export const document = (source: string): Document<C> =>
-  schema.parse.document(parse(source));
-
-/** The English guide: a heading with an explicit id, a paragraph, a callout. */
-export const guide = document(`---
-id: guide
----
-
-# Setup Guide {#setup}
-
-Read the [intro](doc:intro#start) first.
-
-:::callout{kind="warning"}
-Careful.
-:::
-`);
-
-/** The intro: a heading with an explicit id and a paragraph. */
-export const intro = document(`---
-id: intro
----
-
-# Start {#start}
-
-Welcome.
-`);
-
-/** A French layer over the guide and the intro. */
-export const french = {
-  id: "fr",
-  name: "French",
-  documents: {
-    guide: {
-      setup: { children: [{ type: "text", value: "Guide d'installation" }] },
-      "callout[0]": {
-        attributes: { kind: "note" },
-        children: [
-          {
-            type: "paragraph",
-            children: [{ type: "text", value: "Attention." }],
-          },
-        ],
-      },
-    },
-    intro: {
-      "paragraph[0]": { children: [{ type: "text", value: "Bienvenue." }] },
-    },
+/** A contract as the kit emits it: plain data, the values carried in the types. */
+export const contract: {
+  readonly locale: "en";
+  readonly locales: readonly ("en" | "fr")[];
+  readonly messages: readonly (keyof Arguments)[];
+  readonly formats: {
+    readonly number: { readonly price: Intl.NumberFormatOptions };
+    readonly date: { readonly day: Intl.DateTimeFormatOptions };
+    readonly time: Record<never, never>;
+  };
+  readonly arguments?: Arguments;
+} = {
+  locale: "en",
+  locales: ["en", "fr"],
+  messages: ["greeting", "title", "inbox", "terms", "price", "seen"],
+  formats: {
+    number: { price: { style: "currency", currency: "EUR" } },
+    date: { day: { dateStyle: "medium", timeZone: "UTC" } },
+    time: {},
   },
 };
+
+/** Compiles a map of ICU messages the way the kit builds a bundle. */
+const bundle = <K extends string>(messages: Record<K, string>) => {
+  const compiled = {} as Record<K, Ast>;
+  for (const key of Object.keys(messages) as K[]) {
+    const result = compile(messages[key]);
+    if (!result.ok) {
+      throw new Error(result.issues.join("; "));
+    }
+    compiled[key] = result.value.ast;
+  }
+  return compiled;
+};
+
+export const en = bundle({
+  greeting: "Hello, {name}!",
+  title: "Welcome",
+  inbox: "{count, plural, one {# new message} other {# new messages}}",
+  terms: "Read the <link>terms</link>",
+  price: "{amount, number, price}",
+  seen: "Seen {at, date, medium} at {at, time, short}",
+});
+
+export const fr = bundle({
+  greeting: "Bonjour, {name} !",
+  title: "Bienvenue",
+  inbox: "{count, plural, one {# nouveau message} other {# nouveaux messages}}",
+  terms: "Lisez les <link>conditions</link>",
+  price: "{amount, number, price}",
+  seen: "Vu le {at, date, medium} à {at, time, short}",
+});
+
+/** What each message of the nested fixture takes. */
+interface NestedArguments {
+  title: Record<never, never>;
+  "checkout.total": { amount: number };
+  "checkout.cart.empty": Record<never, never>;
+  "checkout.cart.items": { count: number };
+}
+
+/** A contract whose keys nest, as the kit emits one for a source directory. */
+export const nested: {
+  readonly locale: "en";
+  readonly locales: readonly "en"[];
+  readonly messages: readonly (keyof NestedArguments)[];
+  readonly formats: {
+    readonly number: Record<never, never>;
+    readonly date: Record<never, never>;
+    readonly time: Record<never, never>;
+  };
+  readonly arguments?: NestedArguments;
+} = {
+  locale: "en",
+  locales: ["en"],
+  messages: [
+    "title",
+    "checkout.total",
+    "checkout.cart.empty",
+    "checkout.cart.items",
+  ],
+  formats: { number: {}, date: {}, time: {} },
+};
+
+export const nestedEn = bundle({
+  title: "Welcome",
+  "checkout.total": "Total: {amount, number}",
+  "checkout.cart.empty": "Your cart is empty",
+  "checkout.cart.items": "{count, plural, one {# item} other {# items}}",
+});

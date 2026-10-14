@@ -12,14 +12,15 @@
   "fixed": [
     [
       "prosary",
+      "@prosary/catalog",
       "@prosary/core",
-      "@prosary/html",
       "@prosary/kit",
-      "@prosary/parse",
-      "@prosary/schema"
+      "@prosary/schema",
+      "@prosary/translate",
+      "@prosary/nuxt"
     ]
   ],
   "linked": [],
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": ["@prosary/example-nuxt"]
 }

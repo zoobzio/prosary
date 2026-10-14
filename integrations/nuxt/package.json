@@ -1,0 +1,63 @@
+{
+  "name": "@prosary/nuxt",
+  "version": "0.0.0",
+  "description": "Nuxt module for prosary — builds the app's messages, loads one locale per visitor, and provides `$t`",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zoobzio/prosary.git",
+    "directory": "integrations/nuxt"
+  },
+  "type": "module",
+  "main": "./.dist/module.mjs",
+  "types": "./.dist/module.d.mts",
+  "exports": {
+    ".": {
+      "types": "./.dist/module.d.mts",
+      "import": "./.dist/module.mjs"
+    },
+    "./config": {
+      "types": "./.dist/config.d.mts",
+      "import": "./.dist/config.mjs"
+    },
+    "./constant": {
+      "types": "./.dist/constant.d.mts",
+      "import": "./.dist/constant.mjs"
+    },
+    "./server": {
+      "types": "./.dist/server/index.d.mts",
+      "import": "./.dist/server/index.mjs"
+    }
+  },
+  "files": [
+    ".dist"
+  ],
+  "scripts": {
+    "build": "obuild",
+    "stub": "obuild --stub",
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@nuxt/kit": "catalog:",
+    "prosary": "workspace:*",
+    "h3": "catalog:",
+    "vue": "catalog:"
+  },
+  "peerDependencies": {
+    "@prosary/kit": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@prosary/kit": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@prosary/kit": "workspace:*",
+    "@nuxt/nitro-server": "catalog:",
+    "@nuxt/schema": "catalog:",
+    "@types/node": "catalog:",
+    "nuxt": "catalog:"
+  }
+}

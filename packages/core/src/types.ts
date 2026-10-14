@@ -1,206 +1,286 @@
 import type {
-  Contract,
-  Document,
-  Layer,
-  Node,
-  Patch,
+  Bundle,
+  Definition,
+  Locale,
+  Key,
+  Named,
   Schema,
-  Target,
+  Values,
 } from "@prosary/schema";
 
 /**
- * The state that a {@link Prosary} store reads and writes. The state has the
- * base documents by document id and the patch over them. The patch can be a
- * layer that `apply` stored or the overrides that `update` merged. An empty
- * patch is the base. The container can be a plain object or a reactive proxy.
- * The store replaces each member as a whole.
+ * The caller-owned live state a {@link Prosary} service reads and writes: the
+ * one locale the app is in, the messages of that locale it holds — the whole
+ * bundle, or whatever part has been loaded so far — and how values are
+ * formatted. Pass a plain object for inert state, or a reactive proxy to have
+ * reads and writes tracked.
  */
-export type Config<C extends Contract> = {
-  documents: Record<string, Document<C>>;
-  patch: Patch;
+export type Config<D extends Definition> = {
+  /** The locale the messages are in. */
+  locale: Locale<D>;
+
+  /** The messages of that locale the service holds. */
+  messages: Bundle<D>;
+
+  /**
+   * The IANA time zone dates and times are formatted in, inside messages and
+   * by the helpers. Unset, each runtime uses its own — which a server and a
+   * browser rarely share.
+   */
+  timeZone?: string | undefined;
+
+  /**
+   * The locale whose conventions values are formatted by, as a BCP 47 tag —
+   * region, hour cycle, calendar, numbering (`en-GB-u-hc-h23`) — when they
+   * differ from the locale of the messages. Unset, values follow `locale`.
+   */
+  convention?: string | undefined;
 };
 
+/** A handler for a tag in a message: receives what the tag wraps. */
+export type Tag = (chunks: string[]) => string;
+
 /**
- * The middleware for reads and writes of the state container. Each slot
- * receives the value of the matching `config` field and returns the value that
- * the store uses. A missing slot passes the value on.
+ * The runtime features of a service: read/write middleware over the state
+ * container, and how messages are formatted.
  */
-export type Options<C extends Contract> = {
+export type Options<D extends Definition> = {
+  /**
+   * Read middleware: each slot intercepts the matching `config` field and
+   * transforms the value on its way out. Omit a slot to pass it through.
+   */
   get?: {
     config?: {
-      documents?: (
-        documents: Record<string, Document<C>>,
-      ) => Record<string, Document<C>>;
-      patch?: (patch: Patch) => Patch;
+      locale?: (locale: Locale<D>) => Locale<D>;
+      messages?: (messages: Bundle<D>) => Bundle<D>;
+      timeZone?: (timeZone: string | undefined) => string | undefined;
+      convention?: (convention: string | undefined) => string | undefined;
     };
   };
+
+  /**
+   * Write middleware: each slot intercepts the matching `config` field and
+   * transforms the value on its way in. Omit a slot to pass it through.
+   */
   set?: {
     config?: {
-      documents?: (
-        documents: Record<string, Document<C>>,
-      ) => Record<string, Document<C>>;
-      patch?: (patch: Patch) => Patch;
+      locale?: (locale: Locale<D>) => Locale<D>;
+      messages?: (messages: Bundle<D>) => Bundle<D>;
+      timeZone?: (timeZone: string | undefined) => string | undefined;
+      convention?: (convention: string | undefined) => string | undefined;
     };
   };
+
+  /**
+   * Tag handlers every message shares, by tag name. A handler passed with a
+   * call's values wins over the one here.
+   */
+  tags?: Record<string, Tag>;
+
+  /**
+   * What a message resolves to when the active locale does not hold it — its
+   * part of the bundle is not loaded yet. Defaults to the message key.
+   */
+  onMissing?: (key: Key<D>, locale: Locale<D>) => string;
+
+  /**
+   * What a message resolves to when formatting it throws — a value missing
+   * or of the wrong kind. Defaults to rethrowing.
+   */
+  onError?: (error: unknown, key: Key<D>, locale: Locale<D>) => string;
 };
 
 /**
- * A change of the documents. `id` is the document that `add` or `remove`
- * wrote. `before` and `after` are the stored documents of that id around the
- * write. One of them is `undefined` for an add of a new id or a remove.
+ * The arguments a message is called with: its values when it takes any,
+ * nothing when it takes none. A contract with no `arguments` carrier accepts
+ * any values, or none.
  */
-export type DocumentChange<C extends Contract> = {
-  field: "documents";
-  id: string;
-  before: Document<C> | undefined;
-  after: Document<C> | undefined;
+export type Args<D extends Definition, K extends Key<D>> = [
+  keyof Values<D, K>,
+] extends [never]
+  ? []
+  : string extends keyof Values<D, K>
+    ? [values?: Values<D, K>]
+    : [values: Values<D, K>];
+
+/**
+ * A message as one piece of data: its key alone when it takes no values —
+ * `"title"` — and its key with its values when it does —
+ * `["greeting", { name }]`. Each key is paired with its own values, so a
+ * message can be held, passed around and resolved later — `$t(message)` —
+ * as safely as one written out.
+ */
+export type Message<D extends Definition> = {
+  [K in Key<D>]:
+    | ([] extends Args<D, K> ? K : never)
+    | (Args<D, K> extends [] ? never : [key: K, ...args: Args<D, K>]);
+}[Key<D>];
+
+/** Whether a key type is more than one key — a union, not a single message. */
+type Several<K, U = K> = K extends unknown
+  ? [U] extends [K]
+    ? false
+    : true
+  : never;
+
+/**
+ * Resolves a message by its key, two ways. Written out —
+ * `("greeting", { name })` — the values are typed off the one key named; a
+ * key that could be any of several messages is refused here, since no one
+ * set of values fits them all. Held as data, a {@link Message} is passed
+ * whole.
+ */
+export type Format<D extends Definition> = {
+  <K extends Key<D>>(
+    key: K,
+    ...args: Several<K> extends true ? never : Args<D, K>
+  ): string;
+  (message: Message<D>): string;
 };
 
 /**
- * A change of the patch. `before` and `after` are the stored patches around
- * the write. `documents` lists the ids of the documents whose overrides
- * differ between them, for a cache to invalidate.
+ * One level of a {@link Resolver}: a function for every name that completes
+ * a message key, and the next level for every name that is a group. `K` is
+ * what is left of the keys below the prefix `P`.
  */
-export type PatchChange = {
-  field: "patch";
-  before: Patch;
-  after: Patch;
-  documents: string[];
+type Tree<D extends Definition, K extends string, P extends string = ""> = {
+  readonly [H in Exclude<K, `${string}.${string}`>]: (
+    ...args: Args<D, `${P}${H}` & Key<D>>
+  ) => string;
+} & {
+  readonly [H in K extends `${infer S}.${string}` ? S : never]: Tree<
+    D,
+    K extends `${H}.${infer R}` ? R : never,
+    `${P}${H}.`
+  >;
 };
 
 /**
- * A change of the state. `field` tells which member of the container the
- * write replaced.
- */
-export type Change<C extends Contract> = DocumentChange<C> | PatchChange;
-
-/**
- * The events of a {@link Prosary} store, keyed by name. Each value is the
- * argument list of a listener. The store emits each event after the write
- * lands in the container, so a listener reads the new state.
+ * The messages of a contract as functions: `$t.greeting({ name })`. A dot
+ * in a key is a level of the object, so the message `checkout.cart.title`
+ * is `$t.checkout.cart.title()`. Each call formats the message in the
+ * locale active at that moment.
  *
- * - `document`: a document changed with `add` or `remove`. The listener
- *   receives the {@link DocumentChange}.
- * - `patch`: the patch changed with `update` or `apply`. The listener receives
- *   the {@link PatchChange}.
- * - `change`: a document or the patch changed. The listener receives the same
- *   {@link Change} object as the event of the field. The store emits `change`
- *   after `document` or `patch`.
+ * The resolver is itself a function that takes the whole key:
+ * `$t("checkout.cart.title")`, `$t("greeting", { name })` — the same
+ * message, values and result as the nested call. A {@link Message} held as
+ * data goes in whole: `$t(message)`.
  */
-export type Events<C extends Contract> = {
-  document: [change: DocumentChange<C>];
-  patch: [change: PatchChange];
-  change: [change: Change<C>];
-};
+export type Resolver<D extends Definition> = Tree<D, Key<D>> & Format<D>;
 
 /**
- * The name of an event of a {@link Prosary} store.
+ * A runtime translation service over a contract. It holds one locale at a
+ * time and never fetches: the caller resolves a bundle from wherever it
+ * lives and hands it to `apply` or `load`.
  */
-export type Event<C extends Contract> = keyof Events<C>;
-
-/**
- * A listener for one event of a {@link Prosary} store.
- */
-export type Listener<C extends Contract, E extends Event<C>> = (
-  ...args: Events<C>[E]
-) => void;
-
-/**
- * The reads of a store. A renderer takes a `Source`. Each read gives the
- * active content: the base document with the patch applied.
- */
-export interface Source<C extends Contract> {
+export interface Prosary<D extends Definition> {
   /**
-   * Returns the ids of the documents.
+   * The caller-owned live state — the single place state is read or written raw.
    */
-  documents: () => string[];
+  config: Config<D>;
 
   /**
-   * Returns the active document of an id: the base document with the
-   * overrides of the patch applied. Each call returns a new object when the
-   * patch overrides a node of the document. Throws `UnknownDocumentError`
-   * when no document has the id.
+   * The validation bundle for the contract.
    */
-  document: (id: string) => Document<C>;
+  schema: Schema<D>;
 
   /**
-   * Returns the active node of an id in a document. Returns `undefined` when
-   * the document has no node with the id. Throws `UnknownDocumentError` when
-   * no document has the document id.
+   * The locales the contract declares, the source locale first.
    */
-  node: (id: string, node: string) => Node<C> | undefined;
+  locales: () => readonly Locale<D>[];
 
   /**
-   * Resolves a reference. A `doc:guide#setup` reference gives the node. A
-   * `doc:guide` reference gives the document. A `#setup` reference gives the
-   * node in the document `from`. Returns `undefined` for a string that is not
-   * a reference, for a reference that names no document or no node, and for a
-   * `#setup` reference with no `from`.
+   * Whether the active locale holds a message.
    */
-  resolve: (
-    reference: string | Target,
-    from?: string,
-  ) => Document<C> | Node<C> | undefined;
-}
-
-/**
- * The runtime store for a contract. A read gives the active content. `add`,
- * `remove`, `update`, and `apply` change the state in `config`. Each write
- * emits an event. `on` subscribes to one.
- */
-export interface Prosary<C extends Contract> extends Source<C> {
-  /**
-   * The state container of the store.
-   */
-  config: Config<C>;
+  has: (key: Key<D>) => boolean;
 
   /**
-   * The validation functions for the contract.
+   * Formats a message in the active locale. A message the active locale does
+   * not hold resolves through `onMissing`; a formatting failure through
+   * `onError`. Takes a key and its values, or a {@link Message}.
    */
-  schema: Schema<C>;
+  format: Format<D>;
 
   /**
-   * Stores a document under its id. A document with the id of a stored
-   * document replaces it. Throws `InvalidDocumentError` when the document
-   * violates the contract or has no id.
+   * The messages as an object of functions, itself callable by key — what an
+   * app assigns to `$t`. Every resolver of a service is the same object.
    */
-  add: (document: Document<C>) => void;
+  createResolver: () => Resolver<D>;
 
   /**
-   * Removes the document of an id. The patch keeps its overrides for the id.
-   * Throws `UnknownDocumentError` when no document has the id.
+   * Becomes a locale: adopts the bundle as everything the service holds, and
+   * clears the convention — it belonged to the locale being left. Throws
+   * `InvalidLocaleError` or `InvalidBundleError` when either steps outside
+   * the contract, leaving the active state untouched.
    */
-  remove: (id: string) => void;
+  apply: (locale: Locale<D>, bundle: Bundle<D>) => void;
 
   /**
-   * Merges a patch into the stored patch. An override replaces the stored
-   * override of the same node. An identity of the patch replaces the stored
-   * one. Throws `InvalidPatchError` when the patch violates the contract or
-   * names a document or a node the store does not have.
+   * Adds messages of the active locale to what the service already holds; a
+   * key held twice takes the new message. Throws `InvalidBundleError` when
+   * the bundle steps outside the contract.
    */
-  update: (patch: Patch) => void;
+  load: (bundle: Bundle<D>) => void;
 
   /**
-   * Stores a copy of a layer as the patch. The active content becomes the
-   * base with the layer applied. Throws `InvalidLayerError` when the layer
-   * violates the contract or names a document or a node the store does not
-   * have.
+   * Sets the time zone dates and times are formatted in; `undefined` returns
+   * to the runtime's own. Throws `InvalidTimeZoneError` for a zone the
+   * runtime does not know.
    */
-  apply: (layer: Layer) => void;
+  setTimeZone: (timeZone: string | undefined) => void;
 
   /**
-   * Checks a layer against the contract and the documents and returns the
-   * layer. The active content stays the same. Throws `InvalidLayerError` when
-   * the layer is invalid.
+   * Sets the locale whose conventions values are formatted by; `undefined`
+   * returns to the locale of the messages. Throws `InvalidConventionError`
+   * for a tag that is not well formed.
    */
-  create: (layer: Layer) => Layer;
+  setConvention: (convention: string | undefined) => void;
 
   /**
-   * Subscribes a listener to an event. The store calls the listeners of an
-   * event in subscription order, after the write lands in the container. A
-   * write through `add`, `remove`, `update`, or `apply` emits. A write to the
-   * container itself does not. An error in a listener propagates to the caller
-   * of the write. Returns a function that removes the listener.
+   * Formats a number — by a named format, or by options. The same named
+   * formats, convention and formatters a message's `{n, number}` goes
+   * through.
    */
-  on: <E extends Event<C>>(event: E, listener: Listener<C, E>) => () => void;
+  number: (
+    value: number | bigint,
+    format?: Named<D, "number"> | Intl.NumberFormatOptions,
+  ) => string;
+
+  /**
+   * Formats a date in the active time zone — by a named format, or by
+   * options, whose own `timeZone` wins (`UTC` for a calendar date).
+   */
+  date: (
+    value: Date | number,
+    format?: Named<D, "date"> | Intl.DateTimeFormatOptions,
+  ) => string;
+
+  /**
+   * Formats a time of day in the active time zone — by a named format, or by
+   * options. With neither, the `medium` format, as `{at, time}` does.
+   */
+  time: (
+    value: Date | number,
+    format?: Named<D, "time"> | Intl.DateTimeFormatOptions,
+  ) => string;
+
+  /**
+   * Formats a span of time relative to now (`3 days ago`). The caller says
+   * how far and in which unit: deriving it from the clock would differ
+   * between a server render and the browser's.
+   */
+  relative: (
+    value: number,
+    unit: Intl.RelativeTimeFormatUnit,
+    options?: Intl.RelativeTimeFormatOptions,
+  ) => string;
+
+  /** Joins items the way the language lists them (`a, b and c`). */
+  list: (items: Iterable<string>, options?: Intl.ListFormatOptions) => string;
+
+  /**
+   * The display name of a language, region, script, currency, calendar or
+   * date field code (`fr` as `French`); the code itself when it has none.
+   */
+  name: (code: string, type: Intl.DisplayNamesType) => string;
 }

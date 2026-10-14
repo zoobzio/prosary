@@ -6,5 +6,12 @@
   "trailingComma": "all",
   "printWidth": 80,
   "sortPackageJson": false,
-  "ignorePatterns": ["pnpm-lock.yaml", "dist", ".nuxt", ".output", ".generated"]
+  "ignorePatterns": [
+    "pnpm-lock.yaml",
+    "**/CHANGELOG.md",
+    "dist",
+    ".nuxt",
+    ".output",
+    ".generated"
+  ]
 }

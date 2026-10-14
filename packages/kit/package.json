@@ -1,6 +1,8 @@
 {
   "name": "@prosary/kit",
   "version": "0.0.0",
+  "description": "Build kit: enumerated content to per-locale JSON and typed modules",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zoobzio/prosary.git",
@@ -15,8 +17,12 @@
       "import": "./.dist/index.mjs"
     }
   },
+  "bin": {
+    "prosary": "./bin/prosary.mjs"
+  },
   "files": [
-    ".dist"
+    ".dist",
+    "bin"
   ],
   "scripts": {
     "build": "obuild",
@@ -26,7 +32,22 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@prosary/core": "workspace:*",
-    "@prosary/schema": "workspace:*"
+    "@prosary/schema": "workspace:*",
+    "@formatjs/icu-messageformat-parser": "catalog:",
+    "jiti": "catalog:",
+    "objectively": "catalog:"
+  },
+  "peerDependencies": {
+    "@prosary/translate": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@prosary/translate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@prosary/translate": "workspace:*",
+    "@types/node": "catalog:",
+    "intl-messageformat": "catalog:"
   }
 }

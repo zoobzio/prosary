@@ -1,0 +1,23 @@
+# Nuxt example
+
+A Nuxt app translated with prosary: one locale per visitor, a language and
+time zone picker, typed messages through `$t`, messages configured as data,
+the formatting helpers, and a Markdown document per locale.
+
+```sh
+pnpm build              # from the repo root: build the packages first
+pnpm --filter @prosary/example-nuxt dev
+```
+
+- `prosary.config.ts` — the source messages, the locales and the content
+- `messages/` — the source messages, in English, one file per group:
+  `title` in `page.json` is `$t.page.title()`
+- `.i18n/` — French and German, mirroring `messages/` file for file, written
+  by hand and checked in; one message and the German document are left
+  untranslated to show the fallback
+- `content/` — the Markdown content, in English
+- `app/app.config.ts` — the page's sections and plans as data, each message
+  a key (`"plan.team"`) or a key with its values
+  (`["plan.seats", { count: 25 }]`), checked against the contract and
+  resolved with `$t(message)`
+- `app/app.vue` — everything the page does

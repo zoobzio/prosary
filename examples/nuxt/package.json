@@ -1,0 +1,23 @@
+{
+  "name": "@prosary/example-nuxt",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "nuxt prepare",
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@prosary/nuxt": "workspace:*",
+    "prosary": "workspace:*",
+    "nuxt": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@prosary/kit": "workspace:*",
+    "vue-tsc": "catalog:"
+  }
+}

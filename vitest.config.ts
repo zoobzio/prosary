@@ -10,7 +10,6 @@ export default defineConfig({
     projects: [
       "packages/*/vitest.config.ts",
       "integrations/*/vitest.config.ts",
-      "presets/*/vitest.config.ts",
       "examples/*/vitest.config.ts",
     ],
     coverage: {
