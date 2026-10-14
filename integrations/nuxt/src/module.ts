@@ -29,11 +29,7 @@ import { loadSource } from "./kit";
  * A visitor gets one locale. The server picks it — their cookie, else the
  * best match for the languages their browser asks for, else the source
  * locale — and renders with that locale's bundle; the browser loads the same
- * bundle as its own chunk, and another only when the visitor switches.
- *
- * It registers no server routes. An app that serves its bundles over the
- * catalog protocol mounts a handler itself, in a server route file of its
- * choosing, with `createLocaleHandler` from `@prosary/nuxt/server`.
+. * bundle as its own chunk, and another only when the visitor switches.
  */
 export default defineNuxtModule<NuxtProsaryConfig>({
   meta: {

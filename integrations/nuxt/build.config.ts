@@ -26,7 +26,6 @@ export default defineBuildConfig({
         "./src/module.ts",
         "./src/config.ts",
         "./src/constant.ts",
-        "./src/server/index.ts",
         ...runtime,
       ],
       outDir: ".dist",
