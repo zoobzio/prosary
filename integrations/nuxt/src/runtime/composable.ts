@@ -1,3 +1,4 @@
+import type { Root } from "hast";
 import type { ComputedRef } from "vue";
 import type {
   AppProsary,
@@ -53,21 +54,22 @@ export const useLocale = (): {
 };
 
 /**
- * Composable for one content document, as Markdown text, in the active
- * locale. The document is fetched as the static file the build wrote for
+ * Composable for one content document, as its HTML syntax tree, in the
+ * active locale. The tree is fetched as the JSON file the build wrote for
  * that locale — the server render includes it, and a locale switch fetches
- * the other locale's copy. Rendering the Markdown is the app's own.
+ * the other locale's copy.
  *
  * @param path - The document's path under the content directory.
  */
 export const useDocument = (path: AppProsaryDocument) => {
   const { $prosary } = useNuxtApp();
   const request = useRequestFetch();
+  const file = path.replace(/\.md$/, ".json");
   return useAsyncData(
     `prosary:document:${path}`,
     () =>
-      request<string>(`${CONTENT_URL}/${$prosary.config.locale}/${path}`, {
-        responseType: "text",
+      request<Root>(`${CONTENT_URL}/${$prosary.config.locale}/${file}`, {
+        responseType: "json",
       }),
     { watch: [() => $prosary.config.locale] },
   );

@@ -12,9 +12,9 @@ vi.mock("#app", () => ({
 }));
 
 const { request, asyncData } = vi.hoisted(() => ({
-  request: vi.fn(async (url: string) => `# ${url}`),
+  request: vi.fn(async (url: string) => ({ type: "root", url })),
   asyncData: vi.fn(
-    (_key: string, handler: () => Promise<string>, _options: unknown) =>
+    (_key: string, handler: () => Promise<unknown>, _options: unknown) =>
       handler,
   ),
 }));
@@ -55,17 +55,18 @@ describe("useLocale", () => {
 });
 
 describe("useDocument", () => {
-  it("fetches the document's file for the active locale, as text", async () => {
+  it("fetches the document's tree for the active locale, as JSON", async () => {
     config.locale = "fr";
     const load = useDocument(
       "guide/start.md",
-    ) as unknown as () => Promise<string>;
-    await expect(load()).resolves.toBe("# /_prosary/content/fr/guide/start.md");
+    ) as unknown as () => Promise<unknown>;
+    await expect(load()).resolves.toEqual({
+      type: "root",
+      url: "/_prosary/content/fr/guide/start.json",
+    });
     expect(request).toHaveBeenCalledWith(
-      "/_prosary/content/fr/guide/start.md",
-      {
-        responseType: "text",
-      },
+      "/_prosary/content/fr/guide/start.json",
+      { responseType: "json" },
     );
   });
 

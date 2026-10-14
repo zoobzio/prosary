@@ -75,7 +75,7 @@ export interface ContentConfig {
   /** The directory of Markdown documents, relative to the project root. */
   dir: string;
 
-  /** The form the documents are built in. Defaults to `md`. */
+  /** The form the documents are built in. Defaults to `hast`. */
   output?: ContentOutput;
 }
 

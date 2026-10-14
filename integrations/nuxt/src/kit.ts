@@ -4,7 +4,7 @@ import type { NuxtProsaryConfig } from "./config";
 
 import { existsSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { directoryToURL, tryResolveModule, useLogger } from "@nuxt/kit";
 
@@ -12,6 +12,43 @@ import { CONTENT, MODULES } from "./constant";
 
 /** The modules of a kit build the app imports: the contract and the loaders. */
 const ENTRIES = ["index", "bundles"];
+
+/** The form the module serves content in: the HTML syntax tree it renders. */
+const OUTPUT = "hast";
+
+/**
+ * Checks that content was built in the form the module serves. The module
+ * renders the HTML syntax tree, so a build in another form cannot be used as
+ * it stands.
+ *
+ * @param output - The form the build names, if any.
+ * @param where - What was checked, for the message.
+ * @throws when the form is another, or the build is too old to name one.
+ */
+const assertOutput = (output: unknown, where: string): void => {
+  if (output === OUTPUT) {
+    return;
+  }
+  const found =
+    output === undefined
+      ? "names no form (it predates content.output)"
+      : `builds it as ${JSON.stringify(output)}`;
+  throw new Error(
+    `prosary: the content must be built as ${JSON.stringify(OUTPUT)}, which the module renders — ${where} ${found}. Set \`content.output\` to ${JSON.stringify(OUTPUT)} in the kit config, the default, and build again.`,
+  );
+};
+
+/**
+ * The form a kit build made elsewhere built its content in, read off its
+ * contract module.
+ *
+ * @param directory - The build's output directory.
+ */
+const outputOf = async (directory: string): Promise<unknown> => {
+  const url = pathToFileURL(join(directory, "index.mjs")).href;
+  const module: { content?: { output?: unknown } } = await import(url);
+  return module.content?.output;
+};
 
 /**
  * What the module serves, wherever it was built: the files it writes under
@@ -161,9 +198,13 @@ export const loadSource = async (
   if (options.build !== undefined) {
     const directory = await locate(options.build, root);
     const content = join(directory, CONTENT);
+    const served = existsSync(content);
+    if (served) {
+      assertOutput(await outputOf(directory), `the build at ${directory}`);
+    }
     return {
       files: adopt(directory),
-      content: existsSync(content) ? content : undefined,
+      content: served ? content : undefined,
     };
   }
 
@@ -176,6 +217,9 @@ export const loadSource = async (
   }
   const kit = await resolveKit(await loadConfig(path), { cwd: root });
   nuxt.options.watch.push(...kit.inputs);
+  if (kit.documents.length > 0) {
+    assertOutput(kit.output, `the kit config at ${path}`);
+  }
   return {
     files: emit(kit),
     content:

@@ -42,8 +42,11 @@ const built = vi.hoisted(() => ({
     fr: { title: [{ type: 0, value: "Bienvenue" }] },
   },
   documents: ["intro.md"],
-  output: "md",
-  content: { en: { "intro.md": "# Hi\n" }, fr: { "intro.md": "# Salut\n" } },
+  output: "hast",
+  content: {
+    en: { "intro.md": '{"type":"root","children":[]}\n' },
+    fr: { "intro.md": '{"type":"root","children":[],"lang":"fr"}\n' },
+  },
   outDir: "prosary",
   coverage: {},
   inputs: ["/app/messages.json", "/app/translations/fr.json"],
@@ -133,8 +136,8 @@ describe("prosary module", () => {
       "prosary/bundles.d.mts",
       "prosary/locales/en.mjs",
       "prosary/locales/fr.mjs",
-      "prosary/content/en/intro.md",
-      "prosary/content/fr/intro.md",
+      "prosary/content/en/intro.json",
+      "prosary/content/fr/intro.json",
     ]);
     expect(Object.values(written).every((entry) => entry.write)).toBe(true);
     expect(written["prosary/locales/fr.mjs"]!.getContents()).toBe(
@@ -143,8 +146,8 @@ describe("prosary module", () => {
     expect(written["prosary/index.d.mts"]!.getContents()).toContain(
       'export type Locale =\n  | "en"\n  | "fr";',
     );
-    expect(written["prosary/content/fr/intro.md"]!.getContents()).toBe(
-      "# Salut\n",
+    expect(written["prosary/content/fr/intro.json"]!.getContents()).toBe(
+      '{"type":"root","children":[],"lang":"fr"}\n',
     );
   });
 
@@ -276,13 +279,19 @@ describe("prosary module, over a build made elsewhere", () => {
   let built: string;
 
   /** Writes a kit build's modules — and its content, when asked — to disk. */
-  const write = async (content: boolean) => {
+  const write = async (content: boolean, output: unknown = "hast") => {
     await mkdir(built, { recursive: true });
-    await writeFile(join(built, "index.mjs"), "export const locale = 'en';\n");
+    await writeFile(
+      join(built, "index.mjs"),
+      `export const locale = "en";\nexport const content = Object.freeze({ output: ${JSON.stringify(output)} });\n`,
+    );
     await writeFile(join(built, "bundles.mjs"), "export const bundles = {};\n");
     if (content) {
       await mkdir(join(built, "content/en"), { recursive: true });
-      await writeFile(join(built, "content/en/intro.md"), "# Hi\n");
+      await writeFile(
+        join(built, "content/en/intro.json"),
+        '{"type":"root","children":[]}\n',
+      );
     }
   };
 
@@ -380,5 +389,52 @@ describe("prosary module, over a build made elsewhere", () => {
       mod.setup({ build: built }, nuxt(join(root, "app"))),
     ).rejects.toThrow("is not a kit build — it has no index.mjs");
     expect(kit.addTemplate).not.toHaveBeenCalled();
+  });
+
+  it("refuses content built in another form, or by a build too old to say", async () => {
+    await write(true, "md");
+    await expect(
+      mod.setup({ build: "../messages/prosary" }, nuxt(join(root, "app"))),
+    ).rejects.toThrow(
+      'the content must be built as "hast", which the module renders — the build at ',
+    );
+    await expect(
+      mod.setup({ build: "../messages/prosary" }, nuxt(join(root, "app"))),
+    ).rejects.toThrow('builds it as "md"');
+  });
+
+  it("takes a build in another form when it has no content to serve", async () => {
+    await write(false, "md");
+    const app = nuxt(join(root, "app"));
+    await mod.setup({ build: "../messages/prosary" }, app);
+    expect(app.options.nitro.publicAssets).toBeUndefined();
+  });
+});
+
+describe("prosary module, building content in another form", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("refuses to serve it, naming the config", async () => {
+    vi.mocked(resolveKit).mockResolvedValueOnce({
+      ...built,
+      output: "md",
+    } as never);
+    await expect(mod.setup({}, nuxt())).rejects.toThrow(
+      'the content must be built as "hast", which the module renders — the kit config at /app/prosary.config.ts builds it as "md"',
+    );
+  });
+
+  it("builds messages alone in any form", async () => {
+    vi.mocked(resolveKit).mockResolvedValueOnce({
+      ...built,
+      output: "md",
+      documents: [],
+      content: { en: {}, fr: {} },
+    } as never);
+    const app = nuxt();
+    await mod.setup({}, app);
+    expect(app.options.nitro.publicAssets).toBeUndefined();
   });
 });

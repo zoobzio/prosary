@@ -30,8 +30,9 @@ const formats = (declared: Required<Formats>): string[] => {
 
 /**
  * The root entry: the contract. The message keys and locales with their
- * guards, the `Arguments` interface typing what each message takes, and the
- * `contract` a runtime service is made from. Carries no message text, so
+ * guards, the `Arguments` interface typing what each message takes, the
+ * `contract` a runtime service is made from, and the documents with the form
+ * they are built in. Carries no message text, so
  * importing it never pulls a bundle into a build.
  */
 const index = (core: Core): OutputFile[] => {
@@ -51,6 +52,7 @@ const index = (core: Core): OutputFile[] => {
       `export const isLocale = (value) => typeof value === "string" && knownLocales.has(value);`,
       `export const isKey = (value) => typeof value === "string" && knownKeys.has(value);`,
       `export const documents = Object.freeze(${json(core.documents)});`,
+      `export const content = Object.freeze({ output: ${JSON.stringify(core.output)} });`,
       `export const formats = Object.freeze(${json(core.formats)});`,
       "export const contract = Object.freeze({ locale, locales, messages, formats });",
     ],
@@ -66,6 +68,7 @@ const index = (core: Core): OutputFile[] => {
       "export declare const locales: readonly Locale[];",
       "export declare const messages: readonly Key[];",
       "export declare const documents: readonly Document[];",
+      `export declare const content: { readonly output: ${JSON.stringify(core.output)} };`,
       "export declare const isLocale: (value: unknown) => value is Locale;",
       "export declare const isKey: (value: unknown) => value is Key;",
       "export declare const contract: {",

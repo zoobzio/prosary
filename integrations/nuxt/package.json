@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@nuxt/kit": "catalog:",
+    "@types/hast": "catalog:",
     "prosary": "workspace:*",
     "vue": "catalog:"
   },

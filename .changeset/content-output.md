@@ -8,7 +8,7 @@ object as well as a directory: `{ dir, output }`, where `output` is `md` for
 the Markdown as written, `mdast` for the Markdown syntax tree as JSON, `hast`
 for the HTML syntax tree as JSON, or `html` for an HTML string. The trees
 carry the frontmatter on their root and no positions. The built file takes
-the extension of its form. The default stays `md`.
+the extension of its form. The default is `hast`.
 
 `@prosary/parse` returns as the kit's parser: CommonMark with GFM, directives,
 frontmatter lifted onto the root, and `{#id}` heading ids.

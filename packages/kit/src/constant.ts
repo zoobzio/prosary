@@ -52,4 +52,4 @@ export const CONTENT_OUTPUTS = ["md", "mdast", "hast", "html"] as const;
 /**
  * The form a content document is built in when the config names none.
  */
-export const DEFAULT_OUTPUT = "md";
+export const DEFAULT_OUTPUT = "hast";

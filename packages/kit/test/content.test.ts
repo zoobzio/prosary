@@ -252,7 +252,7 @@ describe("translate, with content", () => {
 });
 
 describe("build, with content", () => {
-  it("emits every document for every locale, the source filling the gaps", async () => {
+  it("emits every document for every locale as hast, the source filling the gaps", async () => {
     await write("translations/fr/faq.md", "# Questions\n\nDemandez.\n");
     const output = await build({ root });
     expect(output.coverage.fr?.documents).toEqual(["guide/intro.md"]);
@@ -261,19 +261,33 @@ describe("build, with content", () => {
     ).sort();
     expect(written).toEqual([
       "en",
-      "en/faq.md",
+      "en/faq.json",
       "en/guide",
-      "en/guide/intro.md",
+      "en/guide/intro.json",
       "fr",
-      "fr/faq.md",
+      "fr/faq.json",
       "fr/guide",
-      "fr/guide/intro.md",
+      "fr/guide/intro.json",
     ]);
-    expect(await read("prosary/content/fr/faq.md")).toBe(
-      "# Questions\n\nDemandez.\n",
+    const tree = async (path: string) => JSON.parse(await read(path));
+    expect(await tree("prosary/content/fr/faq.json")).toMatchObject({
+      type: "root",
+      children: [
+        { type: "element", tagName: "h1" },
+        { type: "text", value: "\n" },
+        {
+          type: "element",
+          tagName: "p",
+          children: [{ type: "text", value: "Demandez." }],
+        },
+      ],
+    });
+    expect(await tree("prosary/content/fr/guide/intro.json")).toEqual(
+      await tree("prosary/content/en/guide/intro.json"),
     );
-    expect(await read("prosary/content/fr/guide/intro.md")).toBe(INTRO);
-    expect(await read("prosary/content/en/faq.md")).toBe(FAQ);
+    expect(await read("prosary/index.mjs")).toContain(
+      'export const content = Object.freeze({ output: "hast" });',
+    );
   });
 
   it("lists the documents in the contract module, typed", async () => {
@@ -302,8 +316,10 @@ describe("build, with content", () => {
     await build({ root });
     await rm(join(root, "content/faq.md"));
     await build({ root });
-    await expect(read("prosary/content/en/faq.md")).rejects.toThrow();
-    expect(await read("prosary/content/en/guide/intro.md")).toBe(INTRO);
+    await expect(read("prosary/content/en/faq.json")).rejects.toThrow();
+    expect(
+      JSON.parse(await read("prosary/content/en/guide/intro.json")).type,
+    ).toBe("root");
   });
 });
 
@@ -328,7 +344,7 @@ describe("build, with a content output", () => {
     expect(contentPath("guide/intro.md", "html")).toBe("guide/intro.html");
   });
 
-  it("keeps the Markdown as written under md, as when the config names only a directory", async () => {
+  it("keeps the Markdown as written under md", async () => {
     await configure("md");
     await build({ root });
     expect(await emitted()).toEqual([
@@ -368,8 +384,7 @@ describe("build, with a content output", () => {
     });
   });
 
-  it("builds the HTML syntax tree as JSON, the frontmatter on its root", async () => {
-    await configure("hast");
+  it("builds the HTML syntax tree as JSON by default, the frontmatter on its root", async () => {
     await write("translations/fr/faq.md", "# Questions\n\nDemandez.\n");
     const output = await build({ root });
     expect(output.coverage.fr?.documents).toEqual(["guide/intro.md"]);
