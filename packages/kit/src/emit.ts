@@ -2,6 +2,7 @@ import type { Formats } from "@prosary/schema";
 
 import type { Core, OutputFile } from "./types";
 import { BUNDLES, CONTENT } from "./constant";
+import { contentPath } from "./content";
 import { banner, json, member, pair, union } from "./print";
 
 /** The `Intl` options type each kind of format is declared with. */
@@ -124,12 +125,13 @@ const loaders = (core: Core): OutputFile[] => {
 
 /**
  * The content: every document of every locale, under `content/<locale>/`,
- * at the path it has in the content directory.
+ * at the path it has in the content directory, with the extension of the
+ * form it is built in.
  */
 const content = (core: Core): OutputFile[] => {
   return core.locales.flatMap((locale) =>
     Object.entries(core.content[locale] ?? {}).map(([path, contents]) => ({
-      path: `${CONTENT}/${locale}/${path}`,
+      path: `${CONTENT}/${locale}/${contentPath(path, core.output)}`,
       contents,
     })),
   );
@@ -143,7 +145,8 @@ const content = (core: Core): OutputFile[] => {
  *   `makeProsary`
  * - `bundles` — a lazy loader per locale, for bundlers to split on
  * - `locales/<locale>.mjs` — each locale's bundle of compiled messages
- * - `content/<locale>/<path>` — each locale's Markdown documents
+ * - `content/<locale>/<path>` — each locale's content documents, in the
+ *   form the config asks for
  *
  * the module as an `.mjs` with its `.d.mts` beside it.
  *

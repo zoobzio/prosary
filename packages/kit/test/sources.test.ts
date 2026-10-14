@@ -13,9 +13,8 @@ import { translate } from "../src/translate";
 import { discard } from "./helpers";
 
 const CONFIG = {
-  source: "messages",
-  locale: "en",
-  locales: ["fr"],
+  messages: "messages",
+  translate: { source: "en", targets: ["fr"] },
 } satisfies KitConfig;
 
 let root: string;
@@ -146,7 +145,7 @@ describe("a source directory", () => {
   it("translates into the mirrored files, keeping what they hold", async () => {
     await writeFile(
       join(root, "prosary.config.ts"),
-      `export default ${JSON.stringify({ ...CONFIG, translate: { model: "test/model" } })};\n`,
+      `export default ${JSON.stringify({ ...CONFIG, translate: { ...CONFIG.translate, model: "test/model" } })};\n`,
     );
     const translator = vi.fn<Translate>(async ({ target, messages }) =>
       Object.fromEntries(
@@ -175,7 +174,7 @@ describe("a source directory", () => {
   it("writes no file for a source file nothing was translated from", async () => {
     await writeFile(
       join(root, "prosary.config.ts"),
-      `export default ${JSON.stringify({ ...CONFIG, translate: { model: "test/model" } })};\n`,
+      `export default ${JSON.stringify({ ...CONFIG, translate: { ...CONFIG.translate, model: "test/model" } })};\n`,
     );
     const translator = vi.fn<Translate>(async () => ({}));
     await translate({ root, translator });
@@ -191,7 +190,7 @@ describe("a single source file", () => {
     });
     expect(
       await issues(
-        resolveKit({ ...CONFIG, source: "flat.json" }, { cwd: root }),
+        resolveKit({ ...CONFIG, messages: "flat.json" }, { cwd: root }),
       ),
     ).toEqual([
       '"a" (flat.json) is both a message and the group of "a.b" (flat.json)',

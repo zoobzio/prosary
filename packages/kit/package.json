@@ -32,9 +32,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@prosary/schema": "workspace:*",
     "@formatjs/icu-messageformat-parser": "catalog:",
+    "@prosary/parse": "workspace:*",
+    "@prosary/schema": "workspace:*",
+    "hast-util-to-html": "catalog:",
     "jiti": "catalog:",
+    "mdast-util-to-hast": "catalog:",
     "objectively": "catalog:"
   },
   "peerDependencies": {
@@ -47,6 +50,7 @@
   },
   "devDependencies": {
     "@prosary/translate": "workspace:*",
+    "@types/hast": "catalog:",
     "@types/node": "catalog:",
     "intl-messageformat": "catalog:"
   }

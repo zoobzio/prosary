@@ -6,6 +6,7 @@
 | [`@prosary/catalog`](./catalog)     | `packages/catalog`   | Locale catalogs: providers and wire-protocol clients        |
 | [`@prosary/core`](./core)           | `packages/core`      | The runtime service: deliver, resolve and format messages   |
 | [`@prosary/kit`](./kit)             | `packages/kit`       | Build kit: enumerated content → per-locale JSON and modules |
+| [`@prosary/parse`](./parse)         | `packages/parse`     | The parse step: Markdown to an mdast tree, for the kit      |
 | [`@prosary/schema`](./schema)       | `packages/schema`    | Message contract types and runtime validation               |
 | [`@prosary/translate`](./translate) | `packages/translate` | LLM translation behind `prosary translate`                  |
 

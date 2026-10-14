@@ -141,7 +141,7 @@ describe("generate", () => {
 
   it("emits an empty contract for a source with no messages", async () => {
     const output = await generate(
-      { source: "empty.json", locale: "en" },
+      { messages: "empty.json", translate: { source: "en" } },
       { cwd: FIXTURES },
     );
     const dts = output.files.find(

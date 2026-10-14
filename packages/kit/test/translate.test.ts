@@ -15,7 +15,7 @@ beforeEach(async () => {
   root = await project();
   await writeFile(
     join(root, "prosary.config.ts"),
-    `export default ${JSON.stringify({ ...CONFIG, translate: { model: "test/model", instructions: "Be brief." } })};\n`,
+    `export default ${JSON.stringify({ ...CONFIG, translate: { ...CONFIG.translate, model: "test/model", instructions: "Be brief." } })};\n`,
   );
 });
 
@@ -231,7 +231,7 @@ describe("translate", () => {
   it("creates a locale that has no file yet, and can be limited to it", async () => {
     await writeFile(
       join(root, "prosary.config.ts"),
-      `export default ${JSON.stringify({ ...CONFIG, locales: ["fr", "de"], translate: { model: "test/model" } })};\n`,
+      `export default ${JSON.stringify({ ...CONFIG, translate: { source: "en", targets: ["fr", "de"], model: "test/model" } })};\n`,
     );
     const translator = echo();
     const output = await translate({ root, translator, locales: ["de"] });
@@ -244,7 +244,7 @@ describe("translate", () => {
   it("keeps what finished when a later locale fails", async () => {
     await writeFile(
       join(root, "prosary.config.ts"),
-      `export default ${JSON.stringify({ ...CONFIG, locales: ["fr", "de"], translate: { model: "test/model" } })};\n`,
+      `export default ${JSON.stringify({ ...CONFIG, translate: { source: "en", targets: ["fr", "de"], model: "test/model" } })};\n`,
     );
     const failure = new Error("rate limited");
     const translator = vi.fn<Translate>(async (request) => {

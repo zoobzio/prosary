@@ -4,18 +4,24 @@ import { record } from "objectively";
 
 import type { TranslateOptions } from "@prosary/translate";
 
-import type { KitConfig } from "./types";
-import { OUT_DIR, TRANSLATIONS } from "./constant";
+import type { ContentOutput, KitConfig } from "./types";
+import {
+  CONTENT_OUTPUTS,
+  DEFAULT_OUTPUT,
+  OUT_DIR,
+  TRANSLATIONS,
+} from "./constant";
 import { InvalidConfigError } from "./error";
 import { inside, normalize } from "./path";
 
 /** A config through {@link validate}: defaults applied, paths normalized. */
 export interface Settings {
+  messages: string;
   source: string;
-  locale: string;
   targets: string[];
   translations: string;
   content: string | undefined;
+  output: ContentOutput;
   formats: Required<Formats>;
   translate: TranslateOptions | undefined;
   outDir: string;
@@ -26,6 +32,14 @@ const CONSTRUCT: Record<Kind, (options: object) => unknown> = {
   number: (options) => new Intl.NumberFormat("en", options),
   date: (options) => new Intl.DateTimeFormat("en", options),
   time: (options) => new Intl.DateTimeFormat("en", options),
+};
+
+/** Whether a value names a form a content document can be built in. */
+const isOutput = (value: unknown): value is ContentOutput => {
+  return (
+    typeof value === "string" &&
+    (CONTENT_OUTPUTS as readonly string[]).includes(value)
+  );
 };
 
 /**
@@ -114,31 +128,49 @@ export const validate = (config: KitConfig): Settings => {
     }
   };
 
-  if (typeof config.source !== "string" || config.source === "") {
+  if (typeof config.messages !== "string" || config.messages === "") {
     issues.push(
-      "source must be the path of a message-descriptor document, or of a directory of them",
+      "messages must be the path of a message-descriptor document, or of a directory of them",
     );
   }
-  note(tag("locale", config.locale));
 
-  const targets = config.locales ?? [];
-  if (!Array.isArray(targets)) {
-    issues.push("locales must be an array of locale tags");
+  /* The translation: the source locale, the targets, and — with a model —
+     the options a run translates by. */
+  let source = "";
+  let targets: string[] = [];
+  let run: TranslateOptions | undefined;
+  if (!record(config.translate)) {
+    issues.push(
+      "translate must be an object naming the source locale and the target locales",
+    );
   } else {
-    const seen = new Set<unknown>();
-    for (const [index, target] of targets.entries()) {
-      note(tag(`locales[${index}]`, target));
-      if (target === config.locale) {
-        issues.push(
-          `locales[${index}] ${JSON.stringify(target)} is the source locale — list only the locales it is translated to`,
-        );
+    const { source: from, targets: to, ...options } = config.translate;
+    note(tag("translate.source", from));
+    if (typeof from === "string") {
+      source = from;
+    }
+    if (to !== undefined && !Array.isArray(to)) {
+      issues.push("translate.targets must be an array of locale tags");
+    } else if (to !== undefined) {
+      const seen = new Set<unknown>();
+      for (const [index, target] of to.entries()) {
+        note(tag(`translate.targets[${index}]`, target));
+        if (target === from) {
+          issues.push(
+            `translate.targets[${index}] ${JSON.stringify(target)} is the source locale — list only the locales it is translated to`,
+          );
+        }
+        if (seen.has(target)) {
+          issues.push(
+            `translate.targets[${index}] ${JSON.stringify(target)} is listed twice`,
+          );
+        }
+        seen.add(target);
       }
-      if (seen.has(target)) {
-        issues.push(
-          `locales[${index}] ${JSON.stringify(target)} is listed twice`,
-        );
-      }
-      seen.add(target);
+      targets = [...to];
+    }
+    if (options.model !== undefined) {
+      run = options as TranslateOptions;
     }
   }
 
@@ -158,33 +190,48 @@ export const validate = (config: KitConfig): Settings => {
     TRANSLATIONS,
   );
   const outDir = directory("outDir", config.outDir, OUT_DIR);
-  const content =
-    config.content === undefined
-      ? undefined
-      : directory("content", config.content, "");
-  const declared = formats(config.formats, issues);
 
-  if (config.translate !== undefined) {
-    if (!record(config.translate)) {
-      issues.push("translate must be an object of translation options");
-    } else if (config.translate.model === undefined) {
-      issues.push(
-        "translate.model is required: a model from an AI SDK provider",
-      );
+  /* The content: a directory, or a directory and the form to build in. */
+  let content: string | undefined;
+  let output: ContentOutput = DEFAULT_OUTPUT;
+  if (typeof config.content === "string") {
+    content = directory("content", config.content, "");
+  } else if (record(config.content)) {
+    if (config.content.dir === undefined) {
+      issues.push("content.dir must be a directory inside the project root");
+      content = "";
+    } else {
+      content = directory("content.dir", config.content.dir, "");
     }
+    if (config.content.output !== undefined) {
+      if (isOutput(config.content.output)) {
+        output = config.content.output;
+      } else {
+        issues.push(
+          `content.output must be one of ${CONTENT_OUTPUTS.join(", ")}`,
+        );
+      }
+    }
+  } else if (config.content !== undefined) {
+    issues.push(
+      "content must be a directory, or an object with a dir and an output",
+    );
   }
+
+  const declared = formats(config.formats, issues);
 
   if (issues.length > 0) {
     throw new InvalidConfigError(issues);
   }
   return {
-    source: config.source,
-    locale: config.locale,
-    targets: [...targets],
+    messages: config.messages,
+    source,
+    targets,
     translations,
     content,
+    output,
     formats: declared,
-    translate: config.translate,
+    translate: run,
     outDir,
   };
 };

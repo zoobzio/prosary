@@ -36,11 +36,11 @@ describe("defineConfig", () => {
 describe("loadConfig", () => {
   it("loads the default export of a TypeScript config", async () => {
     await config(
-      'const locale: string = "en";\nexport default { source: "messages.json", locale };\n',
+      'const source: string = "en";\nexport default { messages: "messages.json", translate: { source } };\n',
     );
     await expect(loadConfig(join(root, "prosary.config.ts"))).resolves.toEqual({
-      source: "messages.json",
-      locale: "en",
+      messages: "messages.json",
+      translate: { source: "en" },
     });
   });
 
@@ -51,7 +51,7 @@ describe("loadConfig", () => {
   });
 
   it("throws when the default export is not a config", async () => {
-    await config('export default { source: "messages.json" };\n');
+    await config('export default { messages: "messages.json" };\n');
     await expect(loadConfig(join(root, "prosary.config.ts"))).rejects.toThrow(
       MalformedConfigError,
     );
@@ -84,7 +84,7 @@ describe("build", () => {
 
   it("builds the config it is pointed at", async () => {
     await config(
-      `export default ${JSON.stringify({ ...CONFIG, locales: [], outDir: "src/lang" })};\n`,
+      `export default ${JSON.stringify({ ...CONFIG, translate: { source: "en" }, outDir: "src/lang" })};\n`,
       "lang.config.ts",
     );
     await build({ root, config: "lang.config.ts" });
@@ -99,7 +99,7 @@ describe("build", () => {
     await config(`export default ${JSON.stringify(CONFIG)};\n`);
     await build({ root });
     await config(
-      `export default ${JSON.stringify({ ...CONFIG, locales: [] })};\n`,
+      `export default ${JSON.stringify({ ...CONFIG, translate: { source: "en" } })};\n`,
     );
     await build({ root });
     expect(await readdir(join(root, "prosary/locales"))).toEqual(["en.mjs"]);
@@ -107,7 +107,7 @@ describe("build", () => {
 
   it("rejects an invalid config", async () => {
     await config(
-      'export default { source: "messages.json", locale: "en", outDir: "/abs" };\n',
+      'export default { messages: "messages.json", translate: { source: "en" }, outDir: "/abs" };\n',
     );
     await expect(build({ root })).rejects.toThrow(InvalidConfigError);
   });

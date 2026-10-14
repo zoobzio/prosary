@@ -22,7 +22,7 @@ export class MalformedConfigError extends Error {
 
   constructor(path: string) {
     super(
-      `@prosary/kit: ${path} must default-export a config (defineConfig({ source, locale }))`,
+      `@prosary/kit: ${path} must default-export a config (defineConfig({ messages, translate: { source } }))`,
     );
     this.name = "MalformedConfigError";
     this.path = path;

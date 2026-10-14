@@ -5,7 +5,9 @@ import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { build } from "../src/build";
+import { buildDocument, contentPath } from "../src/content";
 import { checkDocument, listDocuments } from "../src/documents";
+import { InvalidConfigError, InvalidDocumentError } from "../src/error";
 import { translate } from "../src/translate";
 import { CONFIG, discard, project } from "./helpers";
 
@@ -39,7 +41,7 @@ beforeEach(async () => {
   root = await project();
   await write(
     "prosary.config.ts",
-    `export default ${JSON.stringify({ ...CONFIG, content: "content", translate: { model: "test/model" } })};\n`,
+    `export default ${JSON.stringify({ ...CONFIG, content: "content", translate: { ...CONFIG.translate, model: "test/model" } })};\n`,
   );
   await write("content/guide/intro.md", INTRO);
   await write("content/faq.md", FAQ);
@@ -302,5 +304,159 @@ describe("build, with content", () => {
     await build({ root });
     await expect(read("prosary/content/en/faq.md")).rejects.toThrow();
     expect(await read("prosary/content/en/guide/intro.md")).toBe(INTRO);
+  });
+});
+
+describe("build, with a content output", () => {
+  /** Points the config at the content directory, in the given form. */
+  const configure = (output: string) =>
+    write(
+      "prosary.config.ts",
+      `export default ${JSON.stringify({ ...CONFIG, content: { dir: "content", output } })};\n`,
+    );
+
+  /** The content files a build emitted, by path under the output directory. */
+  const emitted = async () =>
+    (await readdir(join(root, "prosary/content"), { recursive: true }))
+      .filter((path) => path.includes("."))
+      .sort();
+
+  it("names the built file by the form", () => {
+    expect(contentPath("guide/intro.md", "md")).toBe("guide/intro.md");
+    expect(contentPath("guide/intro.md", "mdast")).toBe("guide/intro.json");
+    expect(contentPath("guide/intro.md", "hast")).toBe("guide/intro.json");
+    expect(contentPath("guide/intro.md", "html")).toBe("guide/intro.html");
+  });
+
+  it("keeps the Markdown as written under md, as when the config names only a directory", async () => {
+    await configure("md");
+    await build({ root });
+    expect(await emitted()).toEqual([
+      "en/faq.md",
+      "en/guide/intro.md",
+      "fr/faq.md",
+      "fr/guide/intro.md",
+    ]);
+    expect(await read("prosary/content/en/guide/intro.md")).toBe(INTRO);
+    expect(buildDocument(INTRO, "md", "intro.md")).toBe(INTRO);
+  });
+
+  it("builds the Markdown syntax tree as JSON, positions left out", async () => {
+    await configure("mdast");
+    await build({ root });
+    expect(await emitted()).toEqual([
+      "en/faq.json",
+      "en/guide/intro.json",
+      "fr/faq.json",
+      "fr/guide/intro.json",
+    ]);
+    const text = await read("prosary/content/en/guide/intro.json");
+    expect(text).not.toContain('"position"');
+    const tree = JSON.parse(text);
+    expect(tree.type).toBe("root");
+    expect(tree.data.matter).toEqual({ title: "Getting started", order: 1 });
+    expect(tree.children.map((node: { type: string }) => node.type)).toEqual([
+      "heading",
+      "paragraph",
+      "code",
+    ]);
+    expect(tree.children[2]).toEqual({
+      type: "code",
+      lang: "sh",
+      meta: null,
+      value: "pnpm add prosary",
+    });
+  });
+
+  it("builds the HTML syntax tree as JSON, the frontmatter on its root", async () => {
+    await configure("hast");
+    await write("translations/fr/faq.md", "# Questions\n\nDemandez.\n");
+    const output = await build({ root });
+    expect(output.coverage.fr?.documents).toEqual(["guide/intro.md"]);
+    expect(await emitted()).toEqual([
+      "en/faq.json",
+      "en/guide/intro.json",
+      "fr/faq.json",
+      "fr/guide/intro.json",
+    ]);
+    const tree = JSON.parse(await read("prosary/content/en/guide/intro.json"));
+    expect(tree.type).toBe("root");
+    expect(tree.data.matter).toEqual({ title: "Getting started", order: 1 });
+    const elements = tree.children.filter(
+      (node: { type: string }) => node.type === "element",
+    );
+    expect(elements.map((node: { tagName: string }) => node.tagName)).toEqual([
+      "h1",
+      "p",
+      "pre",
+    ]);
+    expect(elements[0].children).toEqual([
+      { type: "text", value: "Getting started" },
+    ]);
+    const fr = JSON.parse(await read("prosary/content/fr/faq.json"));
+    expect(JSON.stringify(fr)).toContain("Demandez.");
+    expect(fr.data).toBeUndefined();
+  });
+
+  it("builds an HTML string", async () => {
+    await configure("html");
+    await build({ root });
+    expect(await emitted()).toEqual([
+      "en/faq.html",
+      "en/guide/intro.html",
+      "fr/faq.html",
+      "fr/guide/intro.html",
+    ]);
+    const html = await read("prosary/content/en/guide/intro.html");
+    expect(html).toContain("<h1>Getting started</h1>");
+    expect(html).toContain('<pre><code class="language-sh">pnpm add prosary');
+    expect(html).not.toContain("title:");
+    expect(await read("prosary/content/en/faq.html")).toBe(
+      "<h1>Questions</h1>\n<p>Ask away.</p>",
+    );
+  });
+
+  it("lists the documents by their source path whatever the form", async () => {
+    await configure("hast");
+    await build({ root });
+    expect(await read("prosary/index.d.mts")).toContain(
+      'export type Document =\n  | "faq.md"\n  | "guide/intro.md";',
+    );
+  });
+
+  it("rejects a form it does not know, and content that is neither a path nor an object", async () => {
+    await configure("pdf");
+    await expect(build({ root })).rejects.toThrow(InvalidConfigError);
+    await expect(build({ root })).rejects.toThrow(
+      "content.output must be one of md, mdast, hast, html",
+    );
+    await write(
+      "prosary.config.ts",
+      `export default ${JSON.stringify({ ...CONFIG, content: { output: "hast" } })};\n`,
+    );
+    await expect(build({ root })).rejects.toThrow(
+      "content.dir must be a directory inside the project root",
+    );
+    await write(
+      "prosary.config.ts",
+      `export default ${JSON.stringify({ ...CONFIG, content: 3 })};\n`,
+    );
+    await expect(build({ root })).rejects.toThrow(
+      "content must be a directory, or an object with a dir and an output",
+    );
+  });
+
+  it("rejects a document whose frontmatter does not parse, naming the file and the line", async () => {
+    await configure("hast");
+    await write("content/bad.md", "---\n- a\n---\n\n# Hi\n");
+    await expect(build({ root })).rejects.toThrow(InvalidDocumentError);
+    await expect(build({ root })).rejects.toThrow(
+      `${join(root, "content/bad.md")} could not be parsed: Frontmatter must be a YAML map. at 1:1`,
+    );
+    await rm(join(root, "content/bad.md"));
+    await write("translations/fr/faq.md", "---\nid: [\n---\n\n# Q\n");
+    await expect(build({ root })).rejects.toThrow(
+      join(root, "translations/fr/faq.md"),
+    );
   });
 });

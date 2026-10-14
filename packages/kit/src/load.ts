@@ -8,14 +8,18 @@ import { MalformedConfigError, MissingConfigError } from "./error";
 
 /**
  * Whether a value has the outer shape of a {@link KitConfig}: a plain record
- * whose `source` and `locale` are strings. A shape test only — whether the
+ * whose `messages` is a string and whose `translate` names a `source`. A shape test only — whether the
  * members satisfy the kit's rules is {@link validate}'s concern.
  */
 const isConfig = (value: unknown): value is KitConfig => {
   if (!record(value)) {
     return false;
   }
-  return typeof value.source === "string" && typeof value.locale === "string";
+  return (
+    typeof value.messages === "string" &&
+    record(value.translate) &&
+    typeof value.translate.source === "string"
+  );
 };
 
 /**

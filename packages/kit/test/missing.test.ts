@@ -20,7 +20,7 @@ beforeEach(async () => {
   root = await project();
   await writeFile(
     join(root, "prosary.config.ts"),
-    `export default ${JSON.stringify({ ...CONFIG, translate: { model: "test/model" } })};\n`,
+    `export default ${JSON.stringify({ ...CONFIG, translate: { ...CONFIG.translate, model: "test/model" } })};\n`,
   );
 });
 

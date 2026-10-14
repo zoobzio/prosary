@@ -12,9 +12,8 @@ import { defineConfig } from "@prosary/kit";
  * `translate.model` here and run `prosary translate`.
  */
 export default defineConfig({
-  source: "messages",
-  locale: "en",
-  locales: ["fr", "de"],
+  messages: "messages",
+  translate: { source: "en", targets: ["fr", "de"] },
   content: "content",
   formats: {
     number: { price: { style: "currency", currency: "EUR" } },

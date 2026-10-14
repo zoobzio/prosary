@@ -1,4 +1,4 @@
-import type { KitConfig } from "@prosary/kit";
+import type { TranslateRunOptions } from "@prosary/kit";
 
 /**
  * The module's configuration. The messages are always authored as FormatJS
@@ -26,16 +26,16 @@ export interface NuxtProsaryConfig {
   config?: string;
 
   /**
-   * How to translate, as the kit config's own `translate`: the model — from
-   * any AI SDK provider — its call settings, and the project's instructions.
-   * Present, the module translates before it builds, exactly as
-   * `prosary translate` does: what each locale is missing or has out of
-   * date is translated and written to the translations directory, and
-   * nothing else is touched. Takes the place of the kit config's
-   * `translate`. Ignored when a `build` is passed, and during
-   * `nuxt prepare`.
+   * How to translate: the model — from any AI SDK provider — its call
+   * settings, and the project's instructions, as the kit config's `translate`
+   * carries them beside the source and the targets. Present, the module
+   * translates before it builds, exactly as `prosary translate` does: what
+   * each locale is missing or has out of date is translated and written to
+   * the translations directory, and nothing else is touched. Takes the place
+   * of the model and the settings in the kit config. Ignored when a `build`
+   * is passed, and during `nuxt prepare`.
    */
-  translate?: NonNullable<KitConfig["translate"]>;
+  translate?: NonNullable<TranslateRunOptions["translate"]>;
 
   /**
    * A kit build made elsewhere: the output directory `prosary build` wrote.

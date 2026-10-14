@@ -1,6 +1,7 @@
 export * from "./build";
 export * from "./compile";
 export * from "./config";
+export * from "./content";
 export * from "./constant";
 export * from "./contract";
 export * from "./documents";

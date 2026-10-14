@@ -227,7 +227,7 @@ export const translate = async (
   const contract = compileSource(source, known);
   const broken = Object.entries(contract.issues).flatMap(([key, issues]) =>
     issues.map(
-      (issue) => `${settings.locale}: ${JSON.stringify(key)} ${issue}`,
+      (issue) => `${settings.source}: ${JSON.stringify(key)} ${issue}`,
     ),
   );
   if (broken.length > 0) {
@@ -374,7 +374,7 @@ export const translate = async (
       Object.keys(pending).length === 0
         ? {}
         : await translator(
-            { source: settings.locale, target: locale, messages: pending },
+            { source: settings.source, target: locale, messages: pending },
             translateOptions,
           );
 
@@ -430,7 +430,7 @@ export const translate = async (
     for (const { document, source, existing } of stale) {
       const answer = await documentTranslator(
         {
-          source: settings.locale,
+          source: settings.source,
           target: locale,
           path: document,
           document: source,

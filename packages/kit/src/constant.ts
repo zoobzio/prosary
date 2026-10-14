@@ -41,3 +41,15 @@ export const MANIFEST = ".prosary.json";
  * someone edited by hand.
  */
 export const LOCK = ".prosary.lock.json";
+
+/**
+ * The forms a built content document can take: the Markdown as written, the
+ * Markdown syntax tree as JSON, the HTML syntax tree as JSON, or an HTML
+ * string.
+ */
+export const CONTENT_OUTPUTS = ["md", "mdast", "hast", "html"] as const;
+
+/**
+ * The form a content document is built in when the config names none.
+ */
+export const DEFAULT_OUTPUT = "md";

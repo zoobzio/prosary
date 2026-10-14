@@ -1,4 +1,5 @@
 import type { Ast, Formats, Kind } from "@prosary/schema";
+import type { CONTENT_OUTPUTS } from "./constant";
 import type {
   Translate,
   TranslateDocument,
@@ -19,20 +20,14 @@ export interface KitConfig {
    * nested under its path. `title` in `checkout/cart.json` is the message
    * `checkout.cart.title`, called as `$t.checkout.cart.title()`.
    */
-  source: string;
+  messages: string;
 
   /**
-   * The locale the source messages are written in, as a canonical BCP 47 tag
-   * (`en`, `pt-BR`). The reference every other locale falls back to.
+   * How the messages and the content translate: the locale they are written
+   * in, the locales they are translated to, and — for `prosary translate` to
+   * call a model — the model and its settings.
    */
-  locale: string;
-
-  /**
-   * The locales the messages are translated to, as canonical BCP 47 tags. The
-   * build emits a bundle for each, plus one for the source locale. Defaults
-   * to none.
-   */
-  locales?: string[];
+  translate: TranslateConfig;
 
   /**
    * The directory of translated messages, relative to the project root,
@@ -44,12 +39,15 @@ export interface KitConfig {
   translations?: string;
 
   /**
-   * A directory of Markdown content in the source locale, relative to the
-   * project root: every `.md` file under it, at any depth. Each document is
-   * translated to `<translations>/<locale>/<path>` and built to
-   * `content/<locale>/<path>` in the output. Unset, there is no content.
+   * The Markdown content in the source locale: a directory, relative to the
+   * project root, or an object that names the directory and the form the
+   * documents are built in. Every `.md` file under the directory, at any
+   * depth, is a document. Each is translated to
+   * `<translations>/<locale>/<path>` and built to `content/<locale>/<path>`
+   * in the output, with the extension of its form. Unset, there is no
+   * content.
    */
-  content?: string;
+  content?: string | ContentConfig;
 
   /**
    * Named number, date and time formats, by kind: `Intl` options a message
@@ -60,18 +58,55 @@ export interface KitConfig {
   formats?: Formats;
 
   /**
-   * How `prosary translate` runs: the model — from any AI SDK provider —
-   * its call settings, and the project's own instructions. The options of
-   * `@prosary/translate`, an optional peer of the kit: installed and
-   * configured only to translate, never to build.
-   */
-  translate?: TranslateOptions;
-
-  /**
    * The output directory, relative to the project root. Defaults to
    * `prosary`.
    */
   outDir?: string;
+}
+
+/**
+ * The form a built content document takes.
+ *
+ * - `md` — the Markdown as written
+ * - `mdast` — the Markdown syntax tree, as JSON
+ * - `hast` — the HTML syntax tree, as JSON
+ * - `html` — an HTML string
+ *
+ * The trees carry the frontmatter as `data.matter` on the root and no
+ * positions. The HTML carries neither.
+ */
+export type ContentOutput = (typeof CONTENT_OUTPUTS)[number];
+
+/**
+ * The content, with the form its documents are built in.
+ */
+export interface ContentConfig {
+  /** The directory of Markdown documents, relative to the project root. */
+  dir: string;
+
+  /** The form the documents are built in. Defaults to `md`. */
+  output?: ContentOutput;
+}
+
+/**
+ * The translation of a project: where it starts, where it goes, and how.
+ * The model and its settings are the options of `@prosary/translate`, an
+ * optional peer of the kit: installed and configured only to translate,
+ * never to build.
+ */
+export interface TranslateConfig extends Partial<TranslateOptions> {
+  /**
+   * The locale the source messages and content are written in, as a
+   * canonical BCP 47 tag (`en`, `pt-BR`). The reference every target falls
+   * back to.
+   */
+  source: string;
+
+  /**
+   * The locales the source is translated to, as canonical BCP 47 tags. The
+   * build emits a bundle for each, plus one for the source. Defaults to none.
+   */
+  targets?: string[];
 }
 
 /**
@@ -188,6 +223,9 @@ export interface Core {
 
   /** Every content document, as posix paths under the content directory. */
   documents: string[];
+
+  /** The form the content documents are built in. */
+  output: ContentOutput;
 
   /**
    * The content per locale, each carrying every document: a document a

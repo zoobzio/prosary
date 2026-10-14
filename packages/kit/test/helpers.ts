@@ -10,9 +10,8 @@ export const FIXTURES = fileURLToPath(new URL("./fixtures/", import.meta.url));
 
 /** The config the fixtures are built under. */
 export const CONFIG = {
-  source: "messages.json",
-  locale: "en",
-  locales: ["fr"],
+  messages: "messages.json",
+  translate: { source: "en", targets: ["fr"] },
   formats: {
     number: { price: { style: "currency", currency: "EUR" } },
   },

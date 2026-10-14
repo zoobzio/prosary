@@ -89,7 +89,7 @@ describe("resolveKit", () => {
 
   it("builds a target locale that has no translations file yet", async () => {
     const kit = await resolveKit(
-      { ...CONFIG, locales: ["fr", "de"] },
+      { ...CONFIG, translate: { source: "en", targets: ["fr", "de"] } },
       { cwd: root },
     );
     expect(kit.bundles.de).toEqual(kit.bundles.en);
@@ -102,7 +102,7 @@ describe("resolveKit", () => {
 
   it("lists the files it read, the source first", async () => {
     const kit = await resolveKit(
-      { ...CONFIG, locales: ["fr", "de"] },
+      { ...CONFIG, translate: { source: "en", targets: ["fr", "de"] } },
       { cwd: root },
     );
     expect(kit.inputs).toEqual([
@@ -115,7 +115,12 @@ describe("resolveKit", () => {
     await mkdir(join(root, "lang"));
     await writeFile(join(root, "lang/de.json"), '{ "title": "Willkommen" }');
     const kit = await resolveKit(
-      { ...CONFIG, locales: ["de"], translations: "lang", outDir: "src/lang" },
+      {
+        ...CONFIG,
+        translate: { source: "en", targets: ["de"] },
+        translations: "lang",
+        outDir: "src/lang",
+      },
       { cwd: root },
     );
     expect(kit.outDir).toBe("src/lang");
@@ -225,7 +230,7 @@ describe("resolveKit", () => {
 
   it("rejects a missing or malformed source document", async () => {
     await expect(
-      resolveKit({ ...CONFIG, source: "nope.json" }, { cwd: root }),
+      resolveKit({ ...CONFIG, messages: "nope.json" }, { cwd: root }),
     ).rejects.toThrow(InvalidDocumentError);
     await writeFile(join(root, "messages.json"), "{not json");
     await expect(resolveKit(CONFIG, { cwd: root })).rejects.toThrow(
@@ -251,9 +256,11 @@ describe("resolveKit", () => {
     await rm(join(root, "messages.json"));
     const error = await resolveKit(
       {
-        source: "messages.json",
-        locale: "EN-us",
-        locales: ["fr", "fr", "en", "not a locale"],
+        messages: "messages.json",
+        translate: {
+          source: "EN-us",
+          targets: ["fr", "fr", "en", "not a locale"],
+        },
         translations: "../elsewhere",
         outDir: "/abs",
       },
@@ -261,9 +268,9 @@ describe("resolveKit", () => {
     ).catch((reason: unknown) => reason);
     expect(error).toBeInstanceOf(InvalidConfigError);
     expect((error as InvalidConfigError).issues).toEqual([
-      'locale "EN-us" must be written canonically, as "en-US"',
-      'locales[1] "fr" is listed twice',
-      'locales[3] "not a locale" is not a BCP 47 locale tag',
+      'translate.source "EN-us" must be written canonically, as "en-US"',
+      'translate.targets[1] "fr" is listed twice',
+      'translate.targets[3] "not a locale" is not a BCP 47 locale tag',
       "translations must be a directory inside the project root",
       "outDir must be a directory inside the project root",
     ]);
@@ -271,7 +278,10 @@ describe("resolveKit", () => {
 
   it("rejects the source locale listed as a target", async () => {
     await expect(
-      resolveKit({ ...CONFIG, locales: ["en"] }, { cwd: root }),
+      resolveKit(
+        { ...CONFIG, translate: { source: "en", targets: ["en"] } },
+        { cwd: root },
+      ),
     ).rejects.toThrow(/is the source locale/);
   });
 });

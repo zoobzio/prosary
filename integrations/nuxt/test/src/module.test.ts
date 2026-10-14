@@ -42,6 +42,7 @@ const built = vi.hoisted(() => ({
     fr: { title: [{ type: 0, value: "Bienvenue" }] },
   },
   documents: ["intro.md"],
+  output: "md",
   content: { en: { "intro.md": "# Hi\n" }, fr: { "intro.md": "# Salut\n" } },
   outDir: "prosary",
   coverage: {},
@@ -50,7 +51,10 @@ const built = vi.hoisted(() => ({
 
 vi.mock("@prosary/kit", async (original) => ({
   ...(await original<typeof Kit>()),
-  loadConfig: vi.fn(async () => ({ source: "messages.json", locale: "en" })),
+  loadConfig: vi.fn(async () => ({
+    messages: "messages.json",
+    translate: { source: "en" },
+  })),
   resolveKit: vi.fn(async () => built),
   translate: vi.fn(async () => ({})),
 }));

@@ -88,7 +88,7 @@ export const readSources = async (
   root: string,
   settings: Settings,
 ): Promise<Sources> => {
-  const source = resolve(root, settings.source);
+  const source = resolve(root, settings.messages);
   const translations = resolve(root, settings.translations);
   const paths = await list(source);
 

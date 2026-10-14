@@ -7,6 +7,7 @@ import type {
   Kit,
   KitConfig,
 } from "./types";
+import { buildDocument } from "./content";
 import { checkTranslation, compileSource, knownFormats } from "./contract";
 import { listDocuments, readDocument } from "./documents";
 import { InvalidMessagesError } from "./error";
@@ -24,6 +25,10 @@ import { validate } from "./validate";
  * (see {@link readSources}); each locale's translations mirror it. A target
  * locale with no translations yet is not an error: its bundle is the
  * source's, and every key is reported missing.
+ *
+ * The content documents are built the same way, in the form the config asks
+ * for: each locale has every document, the source's where it has no
+ * translation.
  *
  * @param config - The kit config.
  * @param options - The project root.
@@ -50,30 +55,34 @@ export const resolveKit = async (
   const { messages, reference } = contract;
   for (const [key, found] of Object.entries(contract.issues)) {
     for (const issue of found) {
-      issues.push(`${settings.locale}: ${JSON.stringify(key)} ${issue}`);
+      issues.push(`${settings.source}: ${JSON.stringify(key)} ${issue}`);
     }
   }
 
   // The content: every source document, then each locale's translation of
-  // it — or the source document where a locale has none.
+  // it — or the source document where a locale has none — each built in the
+  // form the config asks for.
   const contentDir =
     settings.content === undefined
       ? undefined
       : resolve(root, settings.content);
   const paths = contentDir === undefined ? [] : await listDocuments(contentDir);
   const sources: Record<string, string> = {};
+  const built: Record<string, string> = {};
   for (const path of paths) {
+    const file = resolve(contentDir ?? root, path);
     const document = await readDocument(contentDir ?? root, path);
     if (document !== undefined) {
       sources[path] = document;
-      inputs.push(resolve(contentDir ?? root, path));
+      built[path] = buildDocument(document, settings.output, file);
+      inputs.push(file);
     }
   }
   const content: Record<string, Record<string, string>> = {
-    [settings.locale]: sources,
+    [settings.source]: built,
   };
 
-  const bundles: Record<string, Bundle> = { [settings.locale]: reference };
+  const bundles: Record<string, Bundle> = { [settings.source]: reference };
   const coverage: Record<string, Coverage> = {};
   for (const locale of settings.targets) {
     const translated: Record<string, string> = {};
@@ -116,14 +125,15 @@ export const resolveKit = async (
     const translatedDir = resolve(root, settings.translations, locale);
     const localized: Record<string, string> = {};
     const untranslated: string[] = [];
-    for (const [path, document] of Object.entries(sources)) {
+    for (const path of Object.keys(sources)) {
       const translation = await readDocument(translatedDir, path);
       if (translation === undefined) {
         untranslated.push(path);
-        localized[path] = document;
+        localized[path] = built[path] as string;
       } else {
-        localized[path] = translation;
-        inputs.push(resolve(translatedDir, path));
+        const file = resolve(translatedDir, path);
+        localized[path] = buildDocument(translation, settings.output, file);
+        inputs.push(file);
       }
     }
     content[locale] = localized;
@@ -142,12 +152,13 @@ export const resolveKit = async (
     throw new InvalidMessagesError(issues);
   }
   return {
-    locale: settings.locale,
-    locales: [settings.locale, ...settings.targets],
+    locale: settings.source,
+    locales: [settings.source, ...settings.targets],
     formats: settings.formats,
     messages,
     bundles,
     documents: Object.keys(sources),
+    output: settings.output,
     content,
     outDir: settings.outDir,
     coverage,
