@@ -9,11 +9,13 @@ model: `translate.source` is the locale the source is written in and
 `translate.targets` are the locales it is translated to. `translate` is
 always present; the model and its settings remain optional, needed only to
 translate.
+`translations` is now `translate.cache`: the directory the translations are
+cached in, written by `prosary translate` and read by the build.
 
 ```ts
 export default defineConfig({
   messages: "messages",
-  translate: { source: "en", targets: ["fr", "de"] },
+  translate: { source: "en", targets: ["fr", "de"], cache: ".i18n" },
 });
 ```
 

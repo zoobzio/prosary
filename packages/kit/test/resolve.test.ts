@@ -117,8 +117,7 @@ describe("resolveKit", () => {
     const kit = await resolveKit(
       {
         ...CONFIG,
-        translate: { source: "en", targets: ["de"] },
-        translations: "lang",
+        translate: { source: "en", targets: ["de"], cache: "lang" },
         outDir: "src/lang",
       },
       { cwd: root },
@@ -260,8 +259,8 @@ describe("resolveKit", () => {
         translate: {
           source: "EN-us",
           targets: ["fr", "fr", "en", "not a locale"],
+          cache: "../elsewhere",
         },
-        translations: "../elsewhere",
         outDir: "/abs",
       },
       { cwd: root },
@@ -271,7 +270,7 @@ describe("resolveKit", () => {
       'translate.source "EN-us" must be written canonically, as "en-US"',
       'translate.targets[1] "fr" is listed twice',
       'translate.targets[3] "not a locale" is not a BCP 47 locale tag',
-      "translations must be a directory inside the project root",
+      "translate.cache must be a directory inside the project root",
       "outDir must be a directory inside the project root",
     ]);
   });

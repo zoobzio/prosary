@@ -11,9 +11,12 @@
       "cache": false
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["build"]
     },
     "test": {
+      "dependsOn": ["build"]
+    },
+    "@prosary/example-nuxt#typecheck": {
       "dependsOn": ["^build"]
     }
   }

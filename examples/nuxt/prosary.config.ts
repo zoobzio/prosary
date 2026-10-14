@@ -13,10 +13,9 @@ import { defineConfig } from "@prosary/kit";
  */
 export default defineConfig({
   messages: "messages",
-  translate: { source: "en", targets: ["fr", "de"] },
+  translate: { source: "en", targets: ["fr", "de"], cache: ".i18n" },
   content: "content",
   formats: {
     number: { price: { style: "currency", currency: "EUR" } },
   },
-  translations: ".i18n",
 });

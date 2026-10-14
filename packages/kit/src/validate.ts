@@ -128,6 +128,17 @@ export const validate = (config: KitConfig): Settings => {
     }
   };
 
+  const directory = (label: string, path: unknown, fallback: string) => {
+    if (path === undefined) {
+      return fallback;
+    }
+    if (typeof path !== "string" || !inside(normalize(path))) {
+      issues.push(`${label} must be a directory inside the project root`);
+      return fallback;
+    }
+    return normalize(path);
+  };
+
   if (typeof config.messages !== "string" || config.messages === "") {
     issues.push(
       "messages must be the path of a message-descriptor document, or of a directory of them",
@@ -138,13 +149,19 @@ export const validate = (config: KitConfig): Settings => {
      the options a run translates by. */
   let source = "";
   let targets: string[] = [];
+  let translations = TRANSLATIONS;
   let run: TranslateOptions | undefined;
   if (!record(config.translate)) {
     issues.push(
       "translate must be an object naming the source locale and the target locales",
     );
   } else {
-    const { source: from, targets: to, ...options } = config.translate;
+    const {
+      source: from,
+      targets: to,
+      cache: into,
+      ...options
+    } = config.translate;
     note(tag("translate.source", from));
     if (typeof from === "string") {
       source = from;
@@ -169,26 +186,12 @@ export const validate = (config: KitConfig): Settings => {
       }
       targets = [...to];
     }
+    translations = directory("translate.cache", into, TRANSLATIONS);
     if (options.model !== undefined) {
       run = options as TranslateOptions;
     }
   }
 
-  const directory = (label: string, path: unknown, fallback: string) => {
-    if (path === undefined) {
-      return fallback;
-    }
-    if (typeof path !== "string" || !inside(normalize(path))) {
-      issues.push(`${label} must be a directory inside the project root`);
-      return fallback;
-    }
-    return normalize(path);
-  };
-  const translations = directory(
-    "translations",
-    config.translations,
-    TRANSLATIONS,
-  );
   const outDir = directory("outDir", config.outDir, OUT_DIR);
 
   /* The content: a directory, or a directory and the form to build in. */

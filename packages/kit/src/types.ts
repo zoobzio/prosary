@@ -30,15 +30,6 @@ export interface KitConfig {
   translate: TranslateConfig;
 
   /**
-   * The directory of translated messages, relative to the project root,
-   * mirroring the source: one `<locale>.json` per target locale for a source
-   * that is a single file, `<locale>/<path>` per file of a source directory.
-   * Each is a flat map of the file's keys to translated ICU messages.
-   * Defaults to `translations`.
-   */
-  translations?: string;
-
-  /**
    * The Markdown content in the source locale: a directory, relative to the
    * project root, or an object that names the directory and the form the
    * documents are built in. Every `.md` file under the directory, at any
@@ -107,6 +98,16 @@ export interface TranslateConfig extends Partial<TranslateOptions> {
    * build emits a bundle for each, plus one for the source. Defaults to none.
    */
   targets?: string[];
+
+  /**
+   * The directory the translations are cached in, relative to the project
+   * root: what `prosary translate` writes and the build reads, mirroring the
+   * source: one `<locale>.json` per
+   * target for a source that is a single file, `<locale>/<path>` per file of
+   * a source directory, and `<locale>/<path>` per content document. Defaults
+   * to `translations`.
+   */
+  cache?: string;
 }
 
 /**
