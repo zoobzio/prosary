@@ -5,6 +5,7 @@ import {
   addTemplate,
   addPlugin,
   addImports,
+  addServerHandler,
   createResolver,
 } from "@nuxt/kit";
 
@@ -63,6 +64,11 @@ export default defineNuxtModule<NuxtProsaryConfig>({
      * imports: the build's copy is served as static assets, each
      * locale's documents under its own path, so a visitor downloads the
      * document they open in the locale they are in and nothing else.
+     *
+     * In development, Nitro serves static assets from outside its worker,
+     * so a page rendered on the server would not find its document. The
+     * same directory is then also mounted as a server asset and served by
+     * a handler of the module, which answers the server's own fetch.
      */
     if (source.content !== undefined) {
       nuxt.options.nitro.publicAssets ||= [];
@@ -72,7 +78,21 @@ export default defineNuxtModule<NuxtProsaryConfig>({
         // The paths carry no content hash, so a document must not outlive
         // the build that wrote it in a visitor's cache.
         maxAge: 0,
+        // A miss falls through to the next handler instead of a 404: in
+        // development, to the handler below.
+        fallthrough: true,
       });
+      if (nuxt.options.dev) {
+        nuxt.options.nitro.serverAssets ||= [];
+        nuxt.options.nitro.serverAssets.push({
+          baseName: "prosary",
+          dir: source.content,
+        });
+        addServerHandler({
+          route: `${CONTENT_URL}/**`,
+          handler: resolver.resolve("./runtime/server/content"),
+        });
+      }
     }
 
     addPlugin({

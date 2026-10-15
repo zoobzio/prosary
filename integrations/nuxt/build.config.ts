@@ -27,6 +27,7 @@ export default defineBuildConfig({
         "./src/config.ts",
         "./src/constant.ts",
         ...runtime,
+        "./src/runtime/server/content.ts",
       ],
       outDir: ".dist",
       // The dependencies, the peers, and the `#` virtuals are external by

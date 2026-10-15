@@ -12,6 +12,7 @@ const kit = vi.hoisted(() => ({
   addTemplate: vi.fn(),
   addPlugin: vi.fn(),
   addImports: vi.fn(),
+  addServerHandler: vi.fn(),
   createResolver: vi.fn(() => ({ resolve: (p: string) => `/resolved${p}` })),
   directoryToURL: vi.fn((dir: string) => new URL(`file://${dir}/`)),
   tryResolveModule: vi.fn(
@@ -72,9 +73,16 @@ interface FakeNuxt {
     rootDir: string;
     buildDir: string;
     _prepare?: boolean;
+    dev?: boolean;
     watch: string[];
     nitro: {
-      publicAssets?: { dir: string; baseURL: string; maxAge: number }[];
+      publicAssets?: {
+        dir: string;
+        baseURL: string;
+        maxAge: number;
+        fallthrough: boolean;
+      }[];
+      serverAssets?: { baseName: string; dir: string }[];
     };
   };
 }
@@ -161,8 +169,25 @@ describe("prosary module", () => {
         dir: "/app/.nuxt/prosary/content",
         baseURL: "/_prosary/content",
         maxAge: 0,
+        fallthrough: true,
       },
     ]);
+  });
+
+  it("serves the content from a handler of its own as well, in development", async () => {
+    const app = nuxt();
+    await mod.setup({}, app);
+    expect(app.options.nitro.serverAssets).toBeUndefined();
+    expect(kit.addServerHandler).not.toHaveBeenCalled();
+    const dev = { ...nuxt(), options: { ...nuxt().options, dev: true } };
+    await mod.setup({}, dev);
+    expect(dev.options.nitro.serverAssets).toEqual([
+      { baseName: "prosary", dir: "/app/.nuxt/prosary/content" },
+    ]);
+    expect(kit.addServerHandler).toHaveBeenCalledWith({
+      route: "/_prosary/content/**",
+      handler: "/resolved./runtime/server/content",
+    });
   });
 
   it("serves no content for an app that has none", async () => {
@@ -365,7 +390,12 @@ describe("prosary module, over a build made elsewhere", () => {
     const app = nuxt(join(root, "app"));
     await mod.setup({ build: built }, app);
     expect(app.options.nitro.publicAssets).toEqual([
-      { dir: join(built, "content"), baseURL: "/_prosary/content", maxAge: 0 },
+      {
+        dir: join(built, "content"),
+        baseURL: "/_prosary/content",
+        maxAge: 0,
+        fallthrough: true,
+      },
     ]);
   });
 

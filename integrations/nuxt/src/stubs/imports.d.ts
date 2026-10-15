@@ -23,3 +23,24 @@ export declare function useRequestFetch(): <T>(
   url: string,
   options?: { responseType?: "text" | "json" },
 ) => Promise<T>;
+
+/* The server side: what Nitro auto-imports in a handler. */
+
+export interface H3Event {
+  path: string;
+}
+
+export declare function defineEventHandler<T>(
+  handler: (event: H3Event) => T | Promise<T>,
+): (event: H3Event) => Promise<T>;
+
+export declare function getRouterParam(
+  event: H3Event,
+  name: string,
+): string | undefined;
+
+export declare function createError(input: { statusCode: number }): Error;
+
+export declare function useStorage(base: string): {
+  getItem: (key: string) => Promise<unknown>;
+};
