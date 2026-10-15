@@ -17,3 +17,5 @@ pnpm --filter @prosary/example-nuxt dev
   (`["plan.seats", { count: 25 }]`), checked against the contract and
   resolved with `$t(message)`
 - `app/app.vue` — everything the page does
+- `app/components/prose/Callout.vue` — renders the content's `callout`
+  directives; `<Prose>` picks it up from the overrides directory

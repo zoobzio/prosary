@@ -18,7 +18,8 @@
       "@prosary/parse",
       "@prosary/schema",
       "@prosary/translate",
-      "@prosary/nuxt"
+      "@prosary/nuxt",
+      "@prosary/vue"
     ]
   ],
   "linked": [],

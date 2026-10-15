@@ -22,8 +22,8 @@ const at = Date.UTC(2026, 9, 4, 21, 30);
 
 const link = (chunks: string[]) => `<a href="#terms">${chunks.join("")}</a>`;
 
-// The welcome document as Markdown, in the active locale. German has no
-// translation of it, so there it is the English source.
+// The welcome document, in the active locale: the HTML tree the build made
+// of it, rendered by `Prose` with the overrides under `components/prose`.
 const { data: welcome } = await useDocument("welcome.md");
 </script>
 
@@ -110,6 +110,8 @@ const { data: welcome } = await useDocument("welcome.md");
     </section>
 
     <h2 id="content">{{ $t.section.content() }}</h2>
-    <pre data-test="content">{{ welcome }}</pre>
+    <article v-if="welcome" data-test="content">
+      <Prose :tree="welcome" />
+    </article>
   </main>
 </template>

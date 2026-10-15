@@ -6,10 +6,14 @@ import {
   addPlugin,
   addImports,
   addServerHandler,
+  addComponent,
   createResolver,
 } from "@nuxt/kit";
 
-import { CONTENT_URL, MODULES } from "./constant";
+import { resolve } from "node:path";
+
+import { componentsModule, scanOverrides } from "./components";
+import { CONTENT_URL, MODULES, OVERRIDES } from "./constant";
 import { loadSource } from "./kit";
 
 /**
@@ -25,7 +29,8 @@ import { loadSource } from "./kit";
  * build templates under `prosary/`. Built elsewhere, the same `index` and
  * `bundles` modules re-export the build's own. Either way it serves the
  * content documents as static files, and registers the runtime plugin and
- * the `useProsary`, `useT`, `useLocale` and `useDocument` auto-imports.
+ * the `useProsary`, `useT`, `useLocale` and `useDocument` auto-imports, and
+ * `<Prose>`, which renders a document with the app's overrides.
  *
  * A visitor gets one locale. The server picks it — their cookie, else the
  * best match for the languages their browser asks for, else the source
@@ -94,6 +99,28 @@ export default defineNuxtModule<NuxtProsaryConfig>({
         });
       }
     }
+
+    /*
+     * The overrides: the components in the overrides directory, as the map
+     * `Prose` renders with. The directory is watched, so adding or
+     * removing an override restarts dev and builds the map again.
+     */
+    const overrides = resolve(
+      nuxt.options.srcDir,
+      options.components ?? OVERRIDES,
+    );
+    nuxt.options.watch.push(overrides);
+    for (const file of componentsModule(scanOverrides(overrides))) {
+      addTemplate({
+        filename: `${MODULES}/${file.path}`,
+        write: true,
+        getContents: () => file.contents,
+      });
+    }
+    addComponent({
+      name: "Prose",
+      filePath: resolver.resolve("./runtime/document"),
+    });
 
     addPlugin({
       src: resolver.resolve("./runtime/plugin"),

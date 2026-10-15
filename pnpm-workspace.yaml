@@ -29,6 +29,7 @@ catalog:
   obuild: "^0.4.44"
   oxfmt: "^0.71.0"
   oxlint: "^1.86.0"
+  property-information: "^7.2.0"
   remark-directive: "^4.0.0"
   remark-frontmatter: "^5.0.0"
   remark-gfm: "^4.0.1"

@@ -11,6 +11,7 @@ import { defineBuildConfig } from "obuild/config";
 const runtime = [
   "client",
   "composable",
+  "document",
   "negotiate",
   "plugin",
   "side",

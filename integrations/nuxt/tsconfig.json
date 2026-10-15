@@ -13,7 +13,10 @@
       "#app": ["./src/stubs/app.d.ts"],
       "#imports": ["./src/stubs/imports.d.ts"],
       "#build/prosary/index.mjs": ["./src/stubs/build/prosary/index.d.mts"],
-      "#build/prosary/bundles.mjs": ["./src/stubs/build/prosary/bundles.d.mts"]
+      "#build/prosary/bundles.mjs": ["./src/stubs/build/prosary/bundles.d.mts"],
+      "#build/prosary/components.mjs": [
+        "./src/stubs/build/prosary/components.d.mts"
+      ]
     }
   },
   "include": ["src", "test"]

@@ -43,6 +43,16 @@ export interface NuxtProsaryConfig {
    * its `index.mjs`, or a package whose main entry is that `index.mjs`.
    */
   build?: string;
+
+  /**
+   * The overrides: a directory, relative to the source directory (`app/`), of components
+   * that render in place of elements and directives. Each `.vue` file at its
+   * top level renders the tag or directive its name spells in kebab case:
+   * `H2.vue` renders every `h2`, `Callout.vue` every `callout` directive.
+   * `<Prose :tree>` renders a document with them. Defaults to
+   * `components/prose`.
+   */
+  components?: string;
 }
 
 /**

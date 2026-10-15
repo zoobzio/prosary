@@ -27,3 +27,9 @@ export const CONVENTION_COOKIE = "prosary-convention";
  * `{CONTENT_URL}/<locale>/<path>`.
  */
 export const CONTENT_URL = "/_prosary/content";
+
+/**
+ * The directory of overrides, relative to the source directory, when the config
+ * names none: components that render in place of elements and directives.
+ */
+export const OVERRIDES = "components/prose";
