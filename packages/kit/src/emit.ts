@@ -153,7 +153,7 @@ const content = (core: Core): OutputFile[] => {
  *   message lists, `isLocale`, `isKey`, and the `contract` for
  *   `makeProsary`
  * - `bundles` — a lazy loader per locale, for bundlers to split on
- * - `locales/<locale>.mjs` — each locale's bundle of compiled messages
+ * - `messages/<locale>.mjs` — each locale's bundle of compiled messages
  * - `content/<locale>/<path>` — each locale's content documents, in the
  *   form the config asks for
  *

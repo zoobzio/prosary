@@ -19,7 +19,7 @@ export const TRANSLATIONS = "translations";
  * The directory the locale bundles are emitted under, inside the output
  * directory.
  */
-export const BUNDLES = "locales";
+export const BUNDLES = "messages";
 
 /**
  * The directory the content documents are emitted under, inside the output

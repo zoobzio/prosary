@@ -22,8 +22,8 @@ describe("generate", () => {
       "index.d.mts",
       "bundles.mjs",
       "bundles.d.mts",
-      "locales/en.mjs",
-      "locales/fr.mjs",
+      "messages/en.mjs",
+      "messages/fr.mjs",
     ]);
     expect(output.coverage.fr?.missing).toEqual(["invite", "total", "terms"]);
   });
@@ -127,7 +127,7 @@ describe("generate", () => {
 
   it("emits a lazy loader per locale", async () => {
     const source = await file("bundles.mjs");
-    expect(source).toContain('"fr": () => import("./locales/fr.mjs")');
+    expect(source).toContain('"fr": () => import("./messages/fr.mjs")');
     expect(await file("bundles.d.mts")).toContain(
       "readonly [L in Locale]: () => Promise<Bundle<Contract>>;",
     );
@@ -136,11 +136,11 @@ describe("generate", () => {
   it("emits each bundle as a compact module keyed by message", async () => {
     const parse = (source: string) =>
       JSON.parse(source.replace(/^export default /, "").replace(/;\n$/, ""));
-    const bundle = await file("locales/fr.mjs");
+    const bundle = await file("messages/fr.mjs");
     expect(bundle).toMatch(/^export default \{.*\};\n$/);
     expect(parse(bundle).title).toEqual([{ type: 0, value: "Bienvenue" }]);
     expect(Object.keys(parse(bundle))).toEqual(
-      Object.keys(parse(await file("locales/en.mjs"))),
+      Object.keys(parse(await file("messages/en.mjs"))),
     );
   });
 

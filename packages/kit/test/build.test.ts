@@ -72,9 +72,9 @@ describe("build", () => {
       "bundles.mjs",
       "index.d.mts",
       "index.mjs",
-      "locales",
-      "locales/en.mjs",
-      "locales/fr.mjs",
+      "messages",
+      "messages/en.mjs",
+      "messages/fr.mjs",
     ]);
     const manifest = JSON.parse(
       await readFile(join(root, "prosary", ".prosary.json"), "utf8"),
@@ -89,7 +89,7 @@ describe("build", () => {
     );
     await build({ root, config: "lang.config.ts" });
     const bundle = await readFile(
-      join(root, "src/lang/locales/en.mjs"),
+      join(root, "src/lang/messages/en.mjs"),
       "utf8",
     );
     expect(bundle).toContain('"title":[{"type":0,"value":"Welcome"}]');
@@ -102,7 +102,7 @@ describe("build", () => {
       `export default ${JSON.stringify({ ...CONFIG, translate: { source: "en" } })};\n`,
     );
     await build({ root });
-    expect(await readdir(join(root, "prosary/locales"))).toEqual(["en.mjs"]);
+    expect(await readdir(join(root, "prosary/messages"))).toEqual(["en.mjs"]);
   });
 
   it("rejects an invalid config", async () => {

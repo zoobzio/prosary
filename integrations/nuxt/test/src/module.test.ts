@@ -136,13 +136,13 @@ describe("prosary module", () => {
       "prosary/index.d.mts",
       "prosary/bundles.mjs",
       "prosary/bundles.d.mts",
-      "prosary/locales/en.mjs",
-      "prosary/locales/fr.mjs",
+      "prosary/messages/en.mjs",
+      "prosary/messages/fr.mjs",
       "prosary/content/en/intro.json",
       "prosary/content/fr/intro.json",
     ]);
     expect(Object.values(written).every((entry) => entry.write)).toBe(true);
-    expect(written["prosary/locales/fr.mjs"]!.getContents()).toBe(
+    expect(written["prosary/messages/fr.mjs"]!.getContents()).toBe(
       `export default ${JSON.stringify(built.bundles.fr)};\n`,
     );
     expect(written["prosary/index.d.mts"]!.getContents()).toContain(
