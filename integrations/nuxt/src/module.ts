@@ -41,6 +41,11 @@ export default defineNuxtModule<NuxtProsaryConfig>({
   meta: {
     name: "prosary",
     configKey: "prosary",
+    // Nuxt 4.5 is where the kit learned to write the path of a `.d.mts`
+    // declaration for a runtime file. Earlier hosts strip the extension,
+    // and TypeScript cannot reach a `.d.mts` from a bare path, so every
+    // auto-import would silently be `any`.
+    compatibility: { nuxt: ">=4.5.0" },
   },
   setup: async (options, nuxt) => {
     const resolver = createResolver(import.meta.url);
@@ -51,8 +56,9 @@ export default defineNuxtModule<NuxtProsaryConfig>({
      * path to such a file only with its extension. Given a path without one,
      * Nuxt would write declarations for the auto-imports that name a module
      * TypeScript cannot find, and `useProsary`, `AppProsaryMessage` and the
-     * rest would silently be `any` in the app. Resolved, Nuxt writes the
-     * path of each declaration file instead.
+     * rest would silently be `any` in the app. Resolved, Nuxt finds the
+     * `.d.mts` beside each file and writes its path instead — from 4.5,
+     * which the compatibility above requires.
      */
     const runtime = (name: string): Promise<string> =>
       resolver.resolvePath(`./runtime/${name}`);
