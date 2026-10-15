@@ -1,5 +1,16 @@
 # @prosary/nuxt
 
+## 0.0.4
+
+### Patch Changes
+
+- [`264574a`](https://github.com/zoobzio/prosary/commit/264574a8d8b6aef42fc11961eb0d9086a45aae7d) Thanks [@zoobzio](https://github.com/zoobzio)! - Ship the module and its runtime as `.js` with `.d.ts` declarations. Nuxt writes the types of `#imports` with the extension stripped, which TypeScript resolves to a `.d.ts` only, so with auto-imports off `useProsary`, `useT`, `useLocale`, `useDocument` and the `AppProsary*` types were `any`. The Nuxt 4.5 floor added for the auto-import case is no longer needed and is removed.
+
+- Updated dependencies []:
+  - prosary@0.0.4
+  - @prosary/kit@0.0.4
+  - @prosary/vue@0.0.4
+
 ## 0.0.3
 
 ### Patch Changes

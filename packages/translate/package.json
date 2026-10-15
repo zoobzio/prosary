@@ -1,6 +1,6 @@
 {
   "name": "@prosary/translate",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "LLM translation of ICU messages — the base prompt and options behind `prosary translate`",
   "license": "MIT",
   "repository": {

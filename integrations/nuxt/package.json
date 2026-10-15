@@ -1,6 +1,6 @@
 {
   "name": "@prosary/nuxt",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Nuxt module for prosary — builds the app's messages, loads one locale per visitor, and provides `$t`",
   "license": "MIT",
   "repository": {
