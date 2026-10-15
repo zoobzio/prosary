@@ -1,6 +1,6 @@
 ---
-"@prosary/kit": minor
-"@prosary/parse": minor
+"@prosary/kit": patch
+"@prosary/parse": patch
 ---
 
 The content documents build in a form the config chooses. `content` takes an

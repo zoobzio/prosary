@@ -1,5 +1,5 @@
 ---
-"@prosary/nuxt": minor
+"@prosary/nuxt": patch
 ---
 
 `<Prose :tree>` renders a content document through `@prosary/vue` with

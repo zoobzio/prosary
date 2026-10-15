@@ -1,7 +1,7 @@
 ---
-"@prosary/parse": minor
-"@prosary/kit": minor
-"@prosary/nuxt": minor
+"@prosary/parse": patch
+"@prosary/kit": patch
+"@prosary/nuxt": patch
 ---
 
 `@prosary/parse` is the Markdown pipeline: `definePipeline({ presets })` runs

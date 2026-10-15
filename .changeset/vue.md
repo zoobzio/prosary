@@ -1,5 +1,5 @@
 ---
-"@prosary/vue": minor
+"@prosary/vue": patch
 ---
 
 `@prosary/vue` renders a content document in Vue. `<ProsaryDocument :tree

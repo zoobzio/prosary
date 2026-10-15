@@ -1,6 +1,6 @@
 ---
-"@prosary/kit": minor
-"@prosary/nuxt": minor
+"@prosary/kit": patch
+"@prosary/nuxt": patch
 ---
 
 The config speaks in terms of what it holds. `source` is now `messages`: the

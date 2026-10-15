@@ -1,5 +1,5 @@
 ---
-"@prosary/kit": minor
+"@prosary/kit": patch
 ---
 
 The compiled message bundles are emitted under `messages/<locale>.mjs`, beside

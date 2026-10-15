@@ -1,6 +1,6 @@
 ---
-"@prosary/kit": minor
-"@prosary/nuxt": minor
+"@prosary/kit": patch
+"@prosary/nuxt": patch
 ---
 
 The generated contract module records the form the content was built in, as

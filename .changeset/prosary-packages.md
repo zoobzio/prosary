@@ -1,11 +1,11 @@
 ---
-"prosary": minor
-"@prosary/catalog": minor
-"@prosary/core": minor
-"@prosary/kit": minor
-"@prosary/nuxt": minor
-"@prosary/schema": minor
-"@prosary/translate": minor
+"prosary": patch
+"@prosary/catalog": patch
+"@prosary/core": patch
+"@prosary/kit": patch
+"@prosary/nuxt": patch
+"@prosary/schema": patch
+"@prosary/translate": patch
 ---
 
 The translation system publishes under its own names: `prosary` is the

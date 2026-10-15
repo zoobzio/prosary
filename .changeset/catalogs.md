@@ -1,6 +1,6 @@
 ---
-"@prosary/catalog": minor
-"prosary": minor
+"@prosary/catalog": patch
+"prosary": patch
 ---
 
 `@prosary/catalog` has two catalogs, each in a serving and a consuming angle.
