@@ -123,12 +123,8 @@ describe("prosary module", () => {
     vi.clearAllMocks();
   });
 
-  it("is named prosary, configured under prosary, and requires Nuxt 4.5", () => {
-    expect(mod.meta).toEqual({
-      name: "prosary",
-      configKey: "prosary",
-      compatibility: { nuxt: ">=4.5.0" },
-    });
+  it("is named prosary and configured under prosary", () => {
+    expect(mod.meta).toEqual({ name: "prosary", configKey: "prosary" });
   });
 
   it("builds the app's own kit config", async () => {

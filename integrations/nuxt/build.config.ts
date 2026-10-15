@@ -38,4 +38,13 @@ export default defineBuildConfig({
       rolldown: { external: ["@nuxt/schema", "nuxt", "vite"] },
     },
   ],
+  hooks: {
+    // Emitted as `.js` with `.d.ts` rather than obuild's `.mjs` with
+    // `.d.mts`: Nuxt writes the `#imports` types with the extension
+    // stripped, and TypeScript resolves a bare path to a `.d.ts` only.
+    rolldownOutput: (output) => {
+      output.entryFileNames = "[name].js";
+      output.chunkFileNames = "_chunks/[name].js";
+    },
+  },
 });

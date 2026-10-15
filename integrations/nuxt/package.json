@@ -9,20 +9,20 @@
     "directory": "integrations/nuxt"
   },
   "type": "module",
-  "main": "./.dist/module.mjs",
-  "types": "./.dist/module.d.mts",
+  "main": "./.dist/module.js",
+  "types": "./.dist/module.d.ts",
   "exports": {
     ".": {
-      "types": "./.dist/module.d.mts",
-      "import": "./.dist/module.mjs"
+      "types": "./.dist/module.d.ts",
+      "import": "./.dist/module.js"
     },
     "./config": {
-      "types": "./.dist/config.d.mts",
-      "import": "./.dist/config.mjs"
+      "types": "./.dist/config.d.ts",
+      "import": "./.dist/config.js"
     },
     "./constant": {
-      "types": "./.dist/constant.d.mts",
-      "import": "./.dist/constant.mjs"
+      "types": "./.dist/constant.d.ts",
+      "import": "./.dist/constant.js"
     }
   },
   "files": [
