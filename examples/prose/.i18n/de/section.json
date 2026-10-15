@@ -1,6 +1,9 @@
 {
-  "messages": "Nachrichten",
-  "helpers": "Hilfsfunktionen",
-  "plans": "Tarife",
-  "content": "Inhalt"
+  "routes": "Strecken",
+  "planner": "Reise planen",
+  "onboard": "Leben an Bord",
+  "journal": "Journal",
+  "faq": "Fragen",
+  "story": "Unsere Geschichte",
+  "conditions": "Beförderungsbedingungen"
 }

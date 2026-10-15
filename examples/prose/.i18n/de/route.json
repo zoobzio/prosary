@@ -1,0 +1,7 @@
+{
+  "pair": "Von {origin} nach {destination}",
+  "departs": "Abfahrt {at, time, short}",
+  "arrives": "Ankunft {at, time, short} am nächsten Morgen",
+  "nights": "{count, plural, one {# Nacht pro Woche} other {# Nächte pro Woche}}",
+  "from": "Ab {amount, number, price}"
+}

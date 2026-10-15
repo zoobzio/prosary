@@ -1,0 +1,34 @@
+{
+  "paris": {
+    "defaultMessage": "Paris",
+    "description": "The city, as its name is written in the locale."
+  },
+  "vienna": {
+    "defaultMessage": "Vienna",
+    "description": "The city, as its name is written in the locale."
+  },
+  "munich": {
+    "defaultMessage": "Munich",
+    "description": "The city, as its name is written in the locale."
+  },
+  "rome": {
+    "defaultMessage": "Rome",
+    "description": "The city, as its name is written in the locale."
+  },
+  "amsterdam": {
+    "defaultMessage": "Amsterdam",
+    "description": "The city, as its name is written in the locale."
+  },
+  "zurich": {
+    "defaultMessage": "Zurich",
+    "description": "The city, as its name is written in the locale."
+  },
+  "berlin": {
+    "defaultMessage": "Berlin",
+    "description": "The city, as its name is written in the locale."
+  },
+  "stockholm": {
+    "defaultMessage": "Stockholm",
+    "description": "The city, as its name is written in the locale."
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "pair": {
+    "defaultMessage": "{origin} to {destination}",
+    "description": "A route named by its two cities, each already translated."
+  },
+  "departs": {
+    "defaultMessage": "Departs {at, time, short}",
+    "description": "The departure time of a route, in the visitor's time zone."
+  },
+  "arrives": {
+    "defaultMessage": "Arrives {at, time, short} the next morning",
+    "description": "The arrival time of a route, in the visitor's time zone."
+  },
+  "nights": {
+    "defaultMessage": "{count, plural, one {# night a week} other {# nights a week}}",
+    "description": "How many nights a week a route runs."
+  },
+  "from": {
+    "defaultMessage": "From {amount, number, price}",
+    "description": "The lowest fare of a route, per traveller, in the `price` named format."
+  }
+}

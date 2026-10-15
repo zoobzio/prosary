@@ -1,0 +1,9 @@
+{
+  "seat.name": "Sitzplatz",
+  "seat.about": "Ein Liegesitz in einem ruhigen, abgedunkelten Wagen, mit Decke und Steckdose.",
+  "couchette.name": "Liegewagen",
+  "couchette.about": "Eine Liege im Vierer-Abteil, Bettwäsche und ein kleines Frühstück inklusive.",
+  "cabin.name": "Schlafabteil",
+  "cabin.about": "Ein privates Abteil für bis zu zwei Personen, mit Waschbecken und Frühstück an der Tür.",
+  "supplement": "{amount, plural, =0 {Im Fahrpreis enthalten} other {+ {amount, number, price} pro Person}}"
+}

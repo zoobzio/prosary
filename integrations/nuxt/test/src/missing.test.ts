@@ -7,7 +7,10 @@ vi.mock("@nuxt/kit", () => ({
   addTemplate: vi.fn(),
   addPlugin: vi.fn(),
   addImports: vi.fn(),
-  createResolver: () => ({ resolve: (p: string) => p }),
+  createResolver: () => ({
+    resolve: (p: string) => p,
+    resolvePath: async (p: string) => p,
+  }),
   directoryToURL: vi.fn(),
   tryResolveModule: vi.fn(),
   useLogger: vi.fn(),

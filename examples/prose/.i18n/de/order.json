@@ -1,4 +1,0 @@
-{
-  "total": "Gesamt: {amount, number, price}",
-  "updated": "Zuletzt aktualisiert am {at, date, long} um {at, time, short}"
-}

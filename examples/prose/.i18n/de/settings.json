@@ -1,4 +1,5 @@
 {
   "language": "Sprache",
-  "timeZone": "Zeitzone"
+  "timeZone": "Zeitzone",
+  "timeZoneHint": "Abfahrts- und Ankunftszeiten werden in dieser Zeitzone angezeigt."
 }

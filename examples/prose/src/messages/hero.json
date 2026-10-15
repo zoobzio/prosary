@@ -1,0 +1,18 @@
+{
+  "heading": {
+    "defaultMessage": "Fall asleep in one city. Wake up in another.",
+    "description": "The headline of the landing page."
+  },
+  "lede": {
+    "defaultMessage": "Board after dinner, sleep through the night and step out in the centre of one of {count, plural, one {# city} other {# cities}} before breakfast. No airport, no alarm.",
+    "description": "The paragraph under the headline; the count is how many cities the network serves."
+  },
+  "plan": {
+    "defaultMessage": "Plan a journey",
+    "description": "The primary button of the hero; leads to the journey planner."
+  },
+  "routes": {
+    "defaultMessage": "See the routes",
+    "description": "The secondary button of the hero; leads to the list of routes."
+  }
+}

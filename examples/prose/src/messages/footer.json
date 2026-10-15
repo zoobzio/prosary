@@ -1,0 +1,14 @@
+{
+  "legal": {
+    "defaultMessage": "By booking you accept our <terms>conditions of carriage</terms> and the way we <privacy>handle your data</privacy>.",
+    "description": "The legal line of the footer; each tag becomes a link into the conditions document."
+  },
+  "updated": {
+    "defaultMessage": "Timetable updated {at, date, long} at {at, time, short}.",
+    "description": "When the timetable was last changed, in the visitor's time zone."
+  },
+  "fiction": {
+    "defaultMessage": "Solstice Rail is a fictional company. This site is the prosary example: every word, number, date and document on it is translated and formatted by prosary.",
+    "description": "The disclaimer of the footer."
+  }
+}

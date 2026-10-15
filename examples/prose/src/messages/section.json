@@ -1,18 +1,30 @@
 {
-  "messages": {
-    "defaultMessage": "Messages",
-    "description": "Heading of the section showing messages, and its link in the page navigation."
+  "routes": {
+    "defaultMessage": "Routes",
+    "description": "Heading of the section listing the routes, and its link in the navigation."
   },
-  "helpers": {
-    "defaultMessage": "Helpers",
-    "description": "Heading of the section showing the formatting helpers, and its link in the page navigation."
+  "planner": {
+    "defaultMessage": "Plan a journey",
+    "description": "Heading of the journey planner, and its link in the navigation."
   },
-  "plans": {
-    "defaultMessage": "Plans",
-    "description": "Heading of the section listing the plans, and its link in the page navigation."
+  "onboard": {
+    "defaultMessage": "Life on board",
+    "description": "Link in the navigation to the document about life on board."
   },
-  "content": {
-    "defaultMessage": "Content",
-    "description": "Heading of the section showing a Markdown document, and its link in the page navigation."
+  "journal": {
+    "defaultMessage": "Journal",
+    "description": "Heading of the section of journal posts, and its link in the navigation."
+  },
+  "faq": {
+    "defaultMessage": "Questions",
+    "description": "Link in the navigation to the document of frequently asked questions."
+  },
+  "story": {
+    "defaultMessage": "Our story",
+    "description": "Link in the navigation to the document telling the company's story."
+  },
+  "conditions": {
+    "defaultMessage": "Conditions of carriage",
+    "description": "Link in the footer to the document of conditions of carriage."
   }
 }

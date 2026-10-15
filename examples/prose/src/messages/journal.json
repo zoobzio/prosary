@@ -1,0 +1,6 @@
+{
+  "byline": {
+    "defaultMessage": "By {author}, {at, date, calendar}",
+    "description": "The byline of a journal post: the author and the calendar date, both from the post's front matter."
+  }
+}

@@ -14,7 +14,11 @@ const kit = vi.hoisted(() => ({
   addImports: vi.fn(),
   addServerHandler: vi.fn(),
   addComponent: vi.fn(),
-  createResolver: vi.fn(() => ({ resolve: (p: string) => `/resolved${p}` })),
+  createResolver: vi.fn(() => ({
+    resolve: (p: string) => `/resolved${p}`,
+    // The runtime files, as the build emits them.
+    resolvePath: async (p: string) => `/resolved${p}.mjs`,
+  })),
   directoryToURL: vi.fn((dir: string) => new URL(`file://${dir}/`)),
   tryResolveModule: vi.fn(
     async (_id: string, _url: URL): Promise<string | undefined> => undefined,
@@ -159,6 +163,8 @@ describe("prosary module", () => {
       "prosary/content/fr/intro.json",
       "prosary/components.mjs",
       "prosary/components.d.mts",
+      "prosary/document.mjs",
+      "prosary/document.d.ts",
     ]);
     expect(Object.values(written).every((entry) => entry.write)).toBe(true);
     expect(written["prosary/messages/fr.mjs"]!.getContents()).toBe(
@@ -197,17 +203,26 @@ describe("prosary module", () => {
     ]);
     expect(kit.addServerHandler).toHaveBeenCalledWith({
       route: "/_prosary/content/**",
-      handler: "/resolved./runtime/server/content",
+      handler: "/resolved./runtime/server/content.mjs",
     });
   });
 
   it("renders documents through Prose, with an empty map when there are no overrides", async () => {
     const app = nuxt();
     await mod.setup({}, app);
+    // Through the build directory, where a declaration sits beside the
+    // module: Nuxt types a component by its path with the extension left
+    // off, which would not reach the runtime file itself.
     expect(kit.addComponent).toHaveBeenCalledWith({
       name: "Prose",
-      filePath: "/resolved./runtime/document",
+      filePath: "/app/.nuxt/prosary/document.mjs",
     });
+    expect(templates()["prosary/document.mjs"]!.getContents()).toBe(
+      'export { default } from "/resolved./runtime/document.mjs";\n',
+    );
+    expect(templates()["prosary/document.d.ts"]!.getContents()).toBe(
+      'export { default } from "/resolved./runtime/document.mjs";\n',
+    );
     expect(app.options.watch).toContain("/app/app/components/prose");
     const written = templates();
     expect(written["prosary/components.mjs"]!.getContents()).toBe(
@@ -296,7 +311,7 @@ describe("prosary module", () => {
   it("registers the runtime plugin", async () => {
     await mod.setup({}, nuxt());
     expect(kit.addPlugin).toHaveBeenCalledWith({
-      src: "/resolved./runtime/plugin",
+      src: "/resolved./runtime/plugin.mjs",
     });
   });
 
@@ -376,6 +391,8 @@ describe("prosary module, over a build made elsewhere", () => {
       "prosary/bundles.d.mts",
       "prosary/components.mjs",
       "prosary/components.d.mts",
+      "prosary/document.mjs",
+      "prosary/document.d.ts",
     ]);
     const index = `export * from ${JSON.stringify(join(built, "index.mjs"))};\n`;
     expect(written["prosary/index.mjs"]!.getContents()).toBe(index);

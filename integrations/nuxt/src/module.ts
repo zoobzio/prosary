@@ -45,6 +45,26 @@ export default defineNuxtModule<NuxtProsaryConfig>({
   setup: async (options, nuxt) => {
     const resolver = createResolver(import.meta.url);
 
+    /*
+     * The runtime files, resolved to the files they are. The build emits
+     * them as `.mjs` with `.d.mts` declarations, and TypeScript follows a
+     * path to such a file only with its extension. Given a path without one,
+     * Nuxt would write declarations for the auto-imports that name a module
+     * TypeScript cannot find, and `useProsary`, `AppProsaryMessage` and the
+     * rest would silently be `any` in the app. Resolved, Nuxt writes the
+     * path of each declaration file instead.
+     */
+    const runtime = (name: string): Promise<string> =>
+      resolver.resolvePath(`./runtime/${name}`);
+    const files = {
+      composable: await runtime("composable"),
+      store: await runtime("store"),
+      types: await runtime("types"),
+      document: await runtime("document"),
+      plugin: await runtime("plugin"),
+      content: await runtime("server/content"),
+    };
+
     const source = await loadSource(options, nuxt);
 
     /*
@@ -95,7 +115,7 @@ export default defineNuxtModule<NuxtProsaryConfig>({
         });
         addServerHandler({
           route: `${CONTENT_URL}/**`,
-          handler: resolver.resolve("./runtime/server/content"),
+          handler: files.content,
         });
       }
     }
@@ -117,22 +137,43 @@ export default defineNuxtModule<NuxtProsaryConfig>({
         getContents: () => file.contents,
       });
     }
+
+    /*
+     * `Prose`, the component that renders a document with the overrides.
+     * Nuxt types a component by its path with the extension left off, which
+     * reaches a `.ts` source but not the `.mjs` the build emits. Registered
+     * through the build directory — a module that re-exports the runtime
+     * file, with a declaration beside it — the component is typed either way.
+     */
+    const document = resolve(nuxt.options.buildDir, MODULES, "document");
+    addTemplate({
+      filename: `${MODULES}/document.mjs`,
+      write: true,
+      getContents: () =>
+        `export { default } from ${JSON.stringify(files.document)};\n`,
+    });
+    addTemplate({
+      filename: `${MODULES}/document.d.ts`,
+      write: true,
+      getContents: () =>
+        `export { default } from ${JSON.stringify(files.document.replace(/\.ts$/, ""))};\n`,
+    });
     addComponent({
       name: "Prose",
-      filePath: resolver.resolve("./runtime/document"),
+      filePath: `${document}.mjs`,
     });
 
     addPlugin({
-      src: resolver.resolve("./runtime/plugin"),
+      src: files.plugin,
     });
 
     addImports([
       ...["useProsary", "useT", "useLocale", "useDocument"].map((name) => ({
-        from: resolver.resolve("./runtime/composable"),
+        from: files.composable,
         name,
       })),
       {
-        from: resolver.resolve("./runtime/store"),
+        from: files.store,
         name: "accessProsary",
       },
       ...[
@@ -147,7 +188,7 @@ export default defineNuxtModule<NuxtProsaryConfig>({
         "AppProsaryResolver",
         "AppProsary",
       ].map((name) => ({
-        from: resolver.resolve("./runtime/types"),
+        from: files.types,
         name,
         type: true,
       })),

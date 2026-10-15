@@ -12,15 +12,3 @@ defineProps<{ kind?: string }>();
     <slot />
   </aside>
 </template>
-
-<style scoped>
-.callout {
-  border-left: 4px solid #999;
-  padding: 0.5rem 1rem;
-  margin: 1rem 0;
-  background: #f6f6f6;
-}
-.callout-tip {
-  border-color: #2a7;
-}
-</style>

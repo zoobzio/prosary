@@ -6,5 +6,9 @@
   "timeZone": {
     "defaultMessage": "Time zone",
     "description": "Label of the time zone picker."
+  },
+  "timeZoneHint": {
+    "defaultMessage": "Departure and arrival times are shown in this zone.",
+    "description": "The note under the time zone picker."
   }
 }

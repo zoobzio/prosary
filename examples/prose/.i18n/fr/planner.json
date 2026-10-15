@@ -1,0 +1,12 @@
+{
+  "lede": "Choisissez une ligne, une nuit et un tarif. Les prix s'entendent par voyageur, réservation comprise.",
+  "route": "Ligne",
+  "date": "Départ",
+  "travellers": "Voyageurs",
+  "fare": "Tarif",
+  "summary": "{count, plural, one {Un voyageur} other {# voyageurs}} en {fare, select, seat {siège inclinable} couchette {couchette} cabin {cabine privée} other {tarif libre}}, depuis {origin} le {at, date, departure}.",
+  "line": "{count, plural, one {# voyageur} other {# voyageurs}} × {amount, number, price}",
+  "total": "Total {amount, number, price}",
+  "hold": "Réserver ce tarif",
+  "held": "Tarif réservé pour {count, plural, one {# voyageur} other {# voyageurs}} jusqu'à {until, time, short}. Rien n'est débité pour l'instant."
+}

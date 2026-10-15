@@ -1,0 +1,7 @@
+{
+  "pair": "{origin} – {destination}",
+  "departs": "Départ à {at, time, short}",
+  "arrives": "Arrivée à {at, time, short} le lendemain matin",
+  "nights": "{count, plural, one {# nuit par semaine} other {# nuits par semaine}}",
+  "from": "À partir de {amount, number, price}"
+}

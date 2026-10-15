@@ -1,0 +1,10 @@
+{
+  "name": {
+    "defaultMessage": "Solstice Rail",
+    "description": "The company name. A product name: the same in every locale."
+  },
+  "tagline": {
+    "defaultMessage": "Night trains across Europe",
+    "description": "The line under the company name, in the header and the document title."
+  }
+}

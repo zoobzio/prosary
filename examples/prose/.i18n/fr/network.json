@@ -1,0 +1,6 @@
+{
+  "cities": "{count, plural, one {# ville} other {# villes}}",
+  "track": "{distance, number, distance} de voies",
+  "travellers": "{count, number, compact} voyageurs l'an dernier",
+  "countries": "Pays desservis : {countries}."
+}

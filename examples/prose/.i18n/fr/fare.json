@@ -1,0 +1,9 @@
+{
+  "seat.name": "Siège",
+  "seat.about": "Un siège inclinable dans une voiture calme à l'éclairage tamisé, avec couverture et prise.",
+  "couchette.name": "Couchette",
+  "couchette.about": "Une couchette dans un compartiment partagé de quatre, literie et petit-déjeuner léger compris.",
+  "cabin.name": "Cabine",
+  "cabin.about": "Un compartiment privé pour deux personnes au plus, avec lavabo et petit-déjeuner servi à votre porte.",
+  "supplement": "{amount, plural, =0 {Compris dans le tarif} other {+ {amount, number, price} par voyageur}}"
+}

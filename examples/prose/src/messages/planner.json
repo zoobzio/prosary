@@ -1,0 +1,42 @@
+{
+  "lede": {
+    "defaultMessage": "Pick a route, a night and a fare. Prices are per traveller and include the reservation.",
+    "description": "The paragraph under the planner's heading."
+  },
+  "route": {
+    "defaultMessage": "Route",
+    "description": "Label of the route picker in the planner."
+  },
+  "date": {
+    "defaultMessage": "Departure",
+    "description": "Label of the date picker in the planner."
+  },
+  "travellers": {
+    "defaultMessage": "Travellers",
+    "description": "Label of the number of travellers in the planner."
+  },
+  "fare": {
+    "defaultMessage": "Fare",
+    "description": "Label of the fare choice in the planner."
+  },
+  "summary": {
+    "defaultMessage": "{count, plural, one {One traveller} other {# travellers}} in {fare, select, seat {a reclining seat} couchette {a couchette} cabin {a private cabin} other {any fare}}, leaving {origin} on {at, date, departure}.",
+    "description": "The sentence summing up the planner's choices; the origin is a city already translated, the date is in the `departure` named format."
+  },
+  "line": {
+    "defaultMessage": "{count, plural, one {# traveller} other {# travellers}} × {amount, number, price}",
+    "description": "The price line of the planner: the travellers times the fare each pays."
+  },
+  "total": {
+    "defaultMessage": "Total {amount, number, price}",
+    "description": "The total of the planner."
+  },
+  "hold": {
+    "defaultMessage": "Hold this fare",
+    "description": "The button of the planner."
+  },
+  "held": {
+    "defaultMessage": "Held for {count, plural, one {# traveller} other {# travellers}} until {until, time, short}. Nothing is charged yet.",
+    "description": "Confirmation after the button is pressed; the time is in the visitor's time zone."
+  }
+}

@@ -1,6 +1,9 @@
 {
-  "messages": "Messages",
-  "helpers": "Utilitaires",
-  "plans": "Offres",
-  "content": "Contenu"
+  "routes": "Lignes",
+  "planner": "Planifier un voyage",
+  "onboard": "La vie à bord",
+  "journal": "Journal",
+  "faq": "Questions",
+  "story": "Notre histoire",
+  "conditions": "Conditions de transport"
 }

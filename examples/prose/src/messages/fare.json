@@ -1,0 +1,30 @@
+{
+  "seat.name": {
+    "defaultMessage": "Seat",
+    "description": "Name of the cheapest fare: a reclining seat."
+  },
+  "seat.about": {
+    "defaultMessage": "A reclining seat in a quiet, dimmed coach, with a blanket and a socket.",
+    "description": "What the seat fare offers."
+  },
+  "couchette.name": {
+    "defaultMessage": "Couchette",
+    "description": "Name of the middle fare: a bunk in a shared compartment."
+  },
+  "couchette.about": {
+    "defaultMessage": "A bunk in a shared compartment of four, bedding and a light breakfast included.",
+    "description": "What the couchette fare offers."
+  },
+  "cabin.name": {
+    "defaultMessage": "Cabin",
+    "description": "Name of the top fare: a private compartment."
+  },
+  "cabin.about": {
+    "defaultMessage": "A private compartment for up to two, with a washbasin and breakfast brought to your door.",
+    "description": "What the cabin fare offers."
+  },
+  "supplement": {
+    "defaultMessage": "{amount, plural, =0 {Included in the fare} other {+ {amount, number, price} per traveller}}",
+    "description": "What a fare adds to the route's lowest price; zero for the seat, which that price already is."
+  }
+}

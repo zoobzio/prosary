@@ -1,0 +1,12 @@
+{
+  "lede": "Wählen Sie eine Strecke, eine Nacht und einen Tarif. Die Preise gelten pro Person, Reservierung inklusive.",
+  "route": "Strecke",
+  "date": "Abfahrt",
+  "travellers": "Reisende",
+  "fare": "Tarif",
+  "summary": "{count, plural, one {Eine Person} other {# Personen}} im {fare, select, seat {Liegesitz} couchette {Liegewagen} cabin {privaten Schlafabteil} other {Tarif Ihrer Wahl}}, ab {origin} am {at, date, departure}.",
+  "line": "{count, plural, one {# Person} other {# Personen}} × {amount, number, price}",
+  "total": "Gesamt {amount, number, price}",
+  "hold": "Tarif reservieren",
+  "held": "Reserviert für {count, plural, one {# Person} other {# Personen}} bis {until, time, short}. Es wird noch nichts abgebucht."
+}
