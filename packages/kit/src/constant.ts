@@ -53,3 +53,9 @@ export const CONTENT_OUTPUTS = ["md", "mdast", "hast", "html"] as const;
  * The form a content document is built in when the config names none.
  */
 export const DEFAULT_OUTPUT = "hast";
+
+/**
+ * The property of an element built from a directive that names the
+ * directive, as the `directives` preset sets it: `data-directive` in HTML.
+ */
+export const MARKER = "dataDirective";

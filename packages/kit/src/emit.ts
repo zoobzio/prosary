@@ -1,7 +1,7 @@
 import type { Formats } from "@prosary/schema";
 
 import type { Core, OutputFile } from "./types";
-import { BUNDLES, CONTENT } from "./constant";
+import { BUNDLES, CONTENT, MARKER } from "./constant";
 import { contentPath } from "./content";
 import { banner, json, member, pair, union } from "./print";
 
@@ -31,9 +31,9 @@ const formats = (declared: Required<Formats>): string[] => {
 /**
  * The root entry: the contract. The message keys and locales with their
  * guards, the `Arguments` interface typing what each message takes, the
- * `contract` a runtime service is made from, and the documents with the form
- * they are built in. Carries no message text, so
- * importing it never pulls a bundle into a build.
+ * `contract` a runtime service is made from, and the documents: their paths,
+ * the form they are built in, and the elements and directives they build to.
+ * Carries no message text, so importing it never pulls a bundle into a build.
  */
 const index = (core: Core): OutputFile[] => {
   const keys = Object.keys(core.messages);
@@ -52,7 +52,9 @@ const index = (core: Core): OutputFile[] => {
       `export const isLocale = (value) => typeof value === "string" && knownLocales.has(value);`,
       `export const isKey = (value) => typeof value === "string" && knownKeys.has(value);`,
       `export const documents = Object.freeze(${json(core.documents)});`,
-      `export const content = Object.freeze({ output: ${JSON.stringify(core.output)} });`,
+      `export const elements = Object.freeze(${json(core.elements)});`,
+      `export const directives = Object.freeze(${json(core.directives)});`,
+      `export const content = Object.freeze({ output: ${JSON.stringify(core.output)}, marker: ${JSON.stringify(MARKER)} });`,
       `export const formats = Object.freeze(${json(core.formats)});`,
       "export const contract = Object.freeze({ locale, locales, messages, formats });",
     ],
@@ -61,6 +63,8 @@ const index = (core: Core): OutputFile[] => {
       `export type Locale =${union(core.locales)};`,
       `export type Key =${union(keys)};`,
       `export type Document =${union(core.documents)};`,
+      `export type Element =${union(core.elements)};`,
+      `export type Directive =${union(core.directives)};`,
       members.length === 0
         ? "export interface Arguments {}"
         : `export interface Arguments {\n${members.join("\n")}\n}`,
@@ -68,7 +72,9 @@ const index = (core: Core): OutputFile[] => {
       "export declare const locales: readonly Locale[];",
       "export declare const messages: readonly Key[];",
       "export declare const documents: readonly Document[];",
-      `export declare const content: { readonly output: ${JSON.stringify(core.output)} };`,
+      "export declare const elements: readonly Element[];",
+      "export declare const directives: readonly Directive[];",
+      `export declare const content: { readonly output: ${JSON.stringify(core.output)}; readonly marker: ${JSON.stringify(MARKER)} };`,
       "export declare const isLocale: (value: unknown) => value is Locale;",
       "export declare const isKey: (value: unknown) => value is Key;",
       "export declare const contract: {",

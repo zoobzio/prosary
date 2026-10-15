@@ -42,6 +42,8 @@ describe("generate", () => {
         | "total"
         | "terms";
       export type Document = never;
+      export type Element = never;
+      export type Directive = never;
       export interface Arguments {
         /**
          * Greets the signed-in user by name.
@@ -76,7 +78,9 @@ describe("generate", () => {
       export declare const locales: readonly Locale[];
       export declare const messages: readonly Key[];
       export declare const documents: readonly Document[];
-      export declare const content: { readonly output: "hast" };
+      export declare const elements: readonly Element[];
+      export declare const directives: readonly Directive[];
+      export declare const content: { readonly output: "hast"; readonly marker: "dataDirective" };
       export declare const isLocale: (value: unknown) => value is Locale;
       export declare const isKey: (value: unknown) => value is Key;
       export declare const contract: {

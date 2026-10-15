@@ -11,13 +11,13 @@
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
+    "@prosary/example-prose": "workspace:*",
     "@prosary/nuxt": "workspace:*",
     "prosary": "workspace:*",
     "nuxt": "catalog:",
     "vue": "catalog:"
   },
   "devDependencies": {
-    "@prosary/kit": "workspace:*",
     "vue-tsc": "catalog:"
   }
 }

@@ -7,7 +7,7 @@ import type {
   Kit,
   KitConfig,
 } from "./types";
-import { buildDocument } from "./content";
+import { createBuilder } from "./content";
 import { checkTranslation, compileSource, knownFormats } from "./contract";
 import { listDocuments, readDocument } from "./documents";
 import { InvalidMessagesError } from "./error";
@@ -67,6 +67,7 @@ export const resolveKit = async (
       ? undefined
       : resolve(root, settings.content);
   const paths = contentDir === undefined ? [] : await listDocuments(contentDir);
+  const builder = createBuilder(settings.presets);
   const sources: Record<string, string> = {};
   const built: Record<string, string> = {};
   for (const path of paths) {
@@ -74,7 +75,7 @@ export const resolveKit = async (
     const document = await readDocument(contentDir ?? root, path);
     if (document !== undefined) {
       sources[path] = document;
-      built[path] = buildDocument(document, settings.output, file);
+      built[path] = builder.build(document, settings.output, file);
       inputs.push(file);
     }
   }
@@ -132,7 +133,7 @@ export const resolveKit = async (
         localized[path] = built[path] as string;
       } else {
         const file = resolve(translatedDir, path);
-        localized[path] = buildDocument(translation, settings.output, file);
+        localized[path] = builder.build(translation, settings.output, file);
         inputs.push(file);
       }
     }
@@ -159,6 +160,8 @@ export const resolveKit = async (
     bundles,
     documents: Object.keys(sources),
     output: settings.output,
+    elements: builder.elements(),
+    directives: builder.directives(),
     content,
     outDir: settings.outDir,
     coverage,

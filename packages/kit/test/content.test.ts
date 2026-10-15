@@ -2,10 +2,11 @@ import type { TranslateDocument } from "@prosary/translate";
 
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { build } from "../src/build";
-import { buildDocument, contentPath } from "../src/content";
+import { contentPath, createBuilder } from "../src/content";
 import { checkDocument, listDocuments } from "../src/documents";
 import { InvalidConfigError, InvalidDocumentError } from "../src/error";
 import { translate } from "../src/translate";
@@ -27,6 +28,21 @@ pnpm add prosary
 
 const FAQ = "# Questions\n\nAsk away.\n";
 
+/** The presets, by source: the throwaway project cannot resolve the package by name. */
+const PRESETS = JSON.stringify(
+  fileURLToPath(new URL("../../parse/src/plugins/index.ts", import.meta.url)),
+);
+
+/**
+ * A config module building the content with the matter preset, the rest of
+ * the content settings and the translate settings as given.
+ */
+const configured = (
+  content: string,
+  translate = JSON.stringify(CONFIG.translate),
+) =>
+  `import { matter } from ${PRESETS};\nexport default { ...${JSON.stringify(CONFIG)}, translate: ${translate}, content: { ${content}, presets: [matter()] } };\n`;
+
 let root: string;
 
 /** Writes a file of the project, creating its directories. */
@@ -41,7 +57,10 @@ beforeEach(async () => {
   root = await project();
   await write(
     "prosary.config.ts",
-    `export default ${JSON.stringify({ ...CONFIG, content: "content", translate: { ...CONFIG.translate, model: "test/model" } })};\n`,
+    configured(
+      'dir: "content"',
+      JSON.stringify({ ...CONFIG.translate, model: "test/model" }),
+    ),
   );
   await write("content/guide/intro.md", INTRO);
   await write("content/faq.md", FAQ);
@@ -286,7 +305,43 @@ describe("build, with content", () => {
       await tree("prosary/content/en/guide/intro.json"),
     );
     expect(await read("prosary/index.mjs")).toContain(
-      'export const content = Object.freeze({ output: "hast" });',
+      'export const content = Object.freeze({ output: "hast", marker: "dataDirective" });',
+    );
+  });
+
+  it("lists the elements and directives the content builds to, typed", async () => {
+    await write(
+      "prosary.config.ts",
+      `import { directives } from ${PRESETS};\nexport default { ...${JSON.stringify(CONFIG)}, content: { dir: "content", presets: [directives()] } };\n`,
+    );
+    await write(
+      "content/faq.md",
+      ":::callout{kind=info}\nAsk :badge[now].\n:::\n",
+    );
+    await write("translations/fr/faq.md", "::rule\n");
+    await build({ root });
+    const dts = await read("prosary/index.d.mts");
+    expect(dts).toContain(
+      'export type Element =\n  | "code"\n  | "div"\n  | "h1"\n  | "h2"\n  | "hr"\n  | "p"\n  | "pre"\n  | "span";',
+    );
+    expect(dts).toContain(
+      'export type Directive =\n  | "badge"\n  | "callout"\n  | "rule";',
+    );
+    expect(await read("prosary/index.mjs")).toContain(
+      'export const directives = Object.freeze([\n  "badge",\n  "callout",\n  "rule"\n]);',
+    );
+  });
+
+  it("builds CommonMark only without presets", async () => {
+    await write(
+      "prosary.config.ts",
+      `export default ${JSON.stringify({ ...CONFIG, content: "content" })};\n`,
+    );
+    await build({ root });
+    const tree = JSON.parse(await read("prosary/content/en/guide/intro.json"));
+    expect(tree.data).toBeUndefined();
+    expect(await read("prosary/index.d.mts")).toContain(
+      'export type Element =\n  | "code"\n  | "h1"\n  | "h2"\n  | "hr"\n  | "p"\n  | "pre";',
     );
   });
 
@@ -328,7 +383,7 @@ describe("build, with a content output", () => {
   const configure = (output: string) =>
     write(
       "prosary.config.ts",
-      `export default ${JSON.stringify({ ...CONFIG, content: { dir: "content", output } })};\n`,
+      configured(`dir: "content", output: ${JSON.stringify(output)}`),
     );
 
   /** The content files a build emitted, by path under the output directory. */
@@ -354,7 +409,7 @@ describe("build, with a content output", () => {
       "fr/guide/intro.md",
     ]);
     expect(await read("prosary/content/en/guide/intro.md")).toBe(INTRO);
-    expect(buildDocument(INTRO, "md", "intro.md")).toBe(INTRO);
+    expect(createBuilder([]).build(INTRO, "md", "intro.md")).toBe(INTRO);
   });
 
   it("builds the Markdown syntax tree as JSON, positions left out", async () => {
@@ -439,11 +494,18 @@ describe("build, with a content output", () => {
     );
   });
 
-  it("rejects a form it does not know, and content that is neither a path nor an object", async () => {
+  it("rejects a form it does not know, presets that are not a list, and content that is neither a path nor an object", async () => {
     await configure("pdf");
     await expect(build({ root })).rejects.toThrow(InvalidConfigError);
     await expect(build({ root })).rejects.toThrow(
       "content.output must be one of md, mdast, hast, html",
+    );
+    await write(
+      "prosary.config.ts",
+      `export default ${JSON.stringify({ ...CONFIG, content: { dir: "content", presets: "matter" } })};\n`,
+    );
+    await expect(build({ root })).rejects.toThrow(
+      "content.presets must be a list of presets",
     );
     await write(
       "prosary.config.ts",
@@ -457,7 +519,7 @@ describe("build, with a content output", () => {
       `export default ${JSON.stringify({ ...CONFIG, content: 3 })};\n`,
     );
     await expect(build({ root })).rejects.toThrow(
-      "content must be a directory, or an object with a dir and an output",
+      "content must be a directory, or an object with a dir, presets and an output",
     );
   });
 

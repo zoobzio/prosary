@@ -37,8 +37,9 @@
     "@prosary/schema": "workspace:*",
     "hast-util-to-html": "catalog:",
     "jiti": "catalog:",
-    "mdast-util-to-hast": "catalog:",
-    "objectively": "catalog:"
+    "objectively": "catalog:",
+    "unist-util-visit": "catalog:",
+    "vfile-message": "catalog:"
   },
   "peerDependencies": {
     "@prosary/translate": "workspace:*"

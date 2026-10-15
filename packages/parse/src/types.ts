@@ -1,30 +1,31 @@
-import type { Root } from "mdast";
+import type { Root as Hast } from "hast";
+import type { Root as Mdast } from "mdast";
+import type { PluggableList } from "unified";
 
 /**
- * The parsed frontmatter of a document. The YAML block must be a map.
+ * A preset: plugins for each side of the pipeline. The `remark` plugins run
+ * on the Markdown tree after it is parsed, in order; the `rehype` plugins run
+ * on the HTML tree after the bridge, in order. Each list is what unified's
+ * `use` takes: a plugin, or a plugin with its options.
  */
-export type Matter = Record<string, unknown>;
+export interface Preset {
+  remark?: PluggableList;
+  rehype?: PluggableList;
+}
 
-declare module "mdast" {
-  interface RootData {
-    /** The parsed frontmatter, when the document has a YAML block. */
-    matter?: Matter;
-    /** The document id, when the frontmatter has a string `id`. */
-    id?: string;
-  }
-  interface HeadingData {
-    /** The explicit id of the heading, from a trailing `{#id}`. */
-    id?: string;
-  }
+/** What {@link definePipeline} takes. */
+export interface PipelineOptions {
+  /** The presets, applied in order on each side. Defaults to none. */
+  presets?: Preset[];
 }
 
 /**
- * A parser. `parse` turns Markdown into an mdast tree with the frontmatter on
- * the root data, the directives as directive nodes, and the explicit heading
- * ids on the heading data.
+ * A pipeline from Markdown to an HTML tree, with a stop at the Markdown
+ * tree. `parse` runs the Markdown side; `build` runs both.
  */
-export type Parser = {
-  parse: (source: string) => Root;
-};
+export interface Pipeline {
+  parse: (source: string) => Mdast;
+  build: (source: string) => Hast;
+}
 
-export type { Root };
+export type { Hast, Mdast };

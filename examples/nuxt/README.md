@@ -9,13 +9,9 @@ pnpm build              # from the repo root: build the packages first
 pnpm --filter @prosary/example-nuxt dev
 ```
 
-- `prosary.config.ts` — the source messages, the locales and the content
-- `messages/` — the source messages, in English, one file per group:
-  `title` in `page.json` is `$t.page.title()`
-- `.i18n/` — French and German, mirroring `messages/` file for file, written
-  by hand and checked in; one message and the German document are left
-  untranslated to show the fallback
-- `content/` — the Markdown content, in English
+- `nuxt.config.ts` — points the module at the build of
+  [`@prosary/example-prose`](../prose), which holds the messages, the
+  translations and the content
 - `app/app.config.ts` — the page's sections and plans as data, each message
   a key (`"plan.team"`) or a key with its values
   (`["plan.seats", { count: 25 }]`), checked against the contract and

@@ -86,7 +86,6 @@ const { data: welcome } = await useDocument("welcome.md");
     <p data-test="updated">{{ $t.order.updated({ at }) }}</p>
     <!-- eslint-disable-next-line vue/no-v-html -- the tag handler's own markup -->
     <p data-test="terms" v-html="$t.legal.terms({ link })" />
-    <p data-test="pending">{{ $t.page.pending() }}</p>
 
     <h2 id="helpers">{{ $t.section.helpers() }}</h2>
     <ul>

@@ -2,6 +2,8 @@
 // module, in the shape `@prosary/kit` emits for the stub messages.
 export type Locale = "en" | "fr" | "pt-BR";
 export type Document = "intro.md" | "guide/start.md";
+export type Element = "h1" | "p";
+export type Directive = never;
 export type Key = "greeting" | "title" | "inbox" | "seen";
 export interface Arguments {
   greeting: { name: string | number };
@@ -26,3 +28,9 @@ export interface Contract {
   readonly arguments?: Arguments;
 }
 export declare const contract: Contract;
+export declare const elements: readonly Element[];
+export declare const directives: readonly Directive[];
+export declare const content: {
+  readonly output: "hast";
+  readonly marker: "dataDirective";
+};

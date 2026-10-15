@@ -4,6 +4,8 @@ import { record } from "objectively";
 
 import type { TranslateOptions } from "@prosary/translate";
 
+import type { Preset } from "@prosary/parse";
+
 import type { ContentOutput, KitConfig } from "./types";
 import {
   CONTENT_OUTPUTS,
@@ -21,6 +23,7 @@ export interface Settings {
   targets: string[];
   translations: string;
   content: string | undefined;
+  presets: Preset[];
   output: ContentOutput;
   formats: Required<Formats>;
   translate: TranslateOptions | undefined;
@@ -194,8 +197,9 @@ export const validate = (config: KitConfig): Settings => {
 
   const outDir = directory("outDir", config.outDir, OUT_DIR);
 
-  /* The content: a directory, or a directory and the form to build in. */
+  /* The content: a directory, or a directory with its presets and form. */
   let content: string | undefined;
+  let presets: Preset[] = [];
   let output: ContentOutput = DEFAULT_OUTPUT;
   if (typeof config.content === "string") {
     content = directory("content", config.content, "");
@@ -205,6 +209,16 @@ export const validate = (config: KitConfig): Settings => {
       content = "";
     } else {
       content = directory("content.dir", config.content.dir, "");
+    }
+    if (config.content.presets !== undefined) {
+      if (
+        Array.isArray(config.content.presets) &&
+        config.content.presets.every(record)
+      ) {
+        presets = config.content.presets;
+      } else {
+        issues.push("content.presets must be a list of presets");
+      }
     }
     if (config.content.output !== undefined) {
       if (isOutput(config.content.output)) {
@@ -217,7 +231,7 @@ export const validate = (config: KitConfig): Settings => {
     }
   } else if (config.content !== undefined) {
     issues.push(
-      "content must be a directory, or an object with a dir and an output",
+      "content must be a directory, or an object with a dir, presets and an output",
     );
   }
 
@@ -232,6 +246,7 @@ export const validate = (config: KitConfig): Settings => {
     targets,
     translations,
     content,
+    presets,
     output,
     formats: declared,
     translate: run,

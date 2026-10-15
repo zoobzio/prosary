@@ -1,4 +1,5 @@
 import type { Ast, Formats, Kind } from "@prosary/schema";
+import type { Preset } from "@prosary/parse";
 import type { CONTENT_OUTPUTS } from "./constant";
 import type {
   Translate,
@@ -31,9 +32,9 @@ export interface KitConfig {
 
   /**
    * The Markdown content in the source locale: a directory, relative to the
-   * project root, or an object that names the directory and the form the
-   * documents are built in. Every `.md` file under the directory, at any
-   * depth, is a document. Each is translated to
+   * project root, or an object that names the directory, the presets the
+   * documents are built with, and the form they are built in. Every `.md`
+   * file under the directory, at any depth, is a document. Each is translated to
    * `<translations>/<locale>/<path>` and built to `content/<locale>/<path>`
    * in the output, with the extension of its form. Unset, there is no
    * content.
@@ -63,17 +64,23 @@ export interface KitConfig {
  * - `hast` — the HTML syntax tree, as JSON
  * - `html` — an HTML string
  *
- * The trees carry the frontmatter as `data.matter` on the root and no
- * positions. The HTML carries neither.
+ * The trees carry what the presets put on them and no positions.
  */
 export type ContentOutput = (typeof CONTENT_OUTPUTS)[number];
 
 /**
- * The content, with the form its documents are built in.
+ * The content: the directory, the presets its documents are built with, and
+ * the form they are built in.
  */
 export interface ContentConfig {
   /** The directory of Markdown documents, relative to the project root. */
   dir: string;
+
+  /**
+   * The presets of `@prosary/parse` the documents are built with, in order.
+   * Defaults to none: CommonMark to HTML nodes, nothing more.
+   */
+  presets?: Preset[];
 
   /** The form the documents are built in. Defaults to `hast`. */
   output?: ContentOutput;
@@ -227,6 +234,12 @@ export interface Core {
 
   /** The form the content documents are built in. */
   output: ContentOutput;
+
+  /** The tag name of every element the content builds to, sorted. */
+  elements: string[];
+
+  /** The name of every directive the content builds, sorted. */
+  directives: string[];
 
   /**
    * The content per locale, each carrying every document: a document a

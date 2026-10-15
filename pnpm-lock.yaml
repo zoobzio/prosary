@@ -36,9 +36,6 @@ catalogs:
     '@types/node':
       specifier: ^25.9.9
       version: 25.9.9
-    '@types/unist':
-      specifier: ^3.0.3
-      version: 3.0.3
     '@vitest/coverage-v8':
       specifier: ^5.0.3
       version: 5.0.4
@@ -54,6 +51,9 @@ catalogs:
     jiti:
       specifier: ^2.7.0
       version: 2.7.0
+    mdast-util-directive:
+      specifier: ^3.1.1
+      version: 3.1.1
     mdast-util-to-hast:
       specifier: ^13.2.1
       version: 13.2.1
@@ -84,6 +84,9 @@ catalogs:
     remark-parse:
       specifier: ^11.0.0
       version: 11.0.0
+    remark-rehype:
+      specifier: ^11.1.2
+      version: 11.1.2
     turbo:
       specifier: ^2.11.7
       version: 2.11.7
@@ -96,6 +99,12 @@ catalogs:
     unist-util-visit:
       specifier: ^5.1.0
       version: 5.1.0
+    vfile:
+      specifier: ^6.0.3
+      version: 6.0.3
+    vfile-message:
+      specifier: ^4.0.3
+      version: 4.0.3
     vitest:
       specifier: ^5.0.3
       version: 5.0.4
@@ -149,6 +158,9 @@ importers:
 
   examples/nuxt:
     dependencies:
+      '@prosary/example-prose':
+        specifier: workspace:*
+        version: link:../prose
       '@prosary/nuxt':
         specifier: workspace:*
         version: link:../../integrations/nuxt
@@ -162,12 +174,18 @@ importers:
         specifier: 'catalog:'
         version: 3.5.44(typescript@6.0.3)
     devDependencies:
-      '@prosary/kit':
-        specifier: workspace:*
-        version: link:../../packages/kit
       vue-tsc:
         specifier: 'catalog:'
         version: 3.3.13(typescript@6.0.3)
+
+  examples/prose:
+    devDependencies:
+      '@prosary/kit':
+        specifier: workspace:*
+        version: link:../../packages/kit
+      '@prosary/parse':
+        specifier: workspace:*
+        version: link:../../packages/parse
 
   integrations/nuxt:
     dependencies:
@@ -242,12 +260,15 @@ importers:
       jiti:
         specifier: 'catalog:'
         version: 2.7.0
-      mdast-util-to-hast:
-        specifier: 'catalog:'
-        version: 13.2.1
       objectively:
         specifier: 'catalog:'
         version: 0.3.0
+      unist-util-visit:
+        specifier: 'catalog:'
+        version: 5.1.0
+      vfile-message:
+        specifier: 'catalog:'
+        version: 4.0.3
     devDependencies:
       '@prosary/translate':
         specifier: workspace:*
@@ -264,12 +285,18 @@ importers:
 
   packages/parse:
     dependencies:
+      '@types/hast':
+        specifier: 'catalog:'
+        version: 3.0.5
       '@types/mdast':
         specifier: 'catalog:'
         version: 4.0.4
-      '@types/unist':
+      mdast-util-directive:
         specifier: 'catalog:'
-        version: 3.0.3
+        version: 3.1.1
+      mdast-util-to-hast:
+        specifier: 'catalog:'
+        version: 13.2.1
       objectively:
         specifier: 'catalog:'
         version: 0.3.0
@@ -285,12 +312,18 @@ importers:
       remark-parse:
         specifier: 'catalog:'
         version: 11.0.0
+      remark-rehype:
+        specifier: 'catalog:'
+        version: 11.1.2
       unified:
         specifier: 'catalog:'
         version: 11.0.5
       unist-util-visit:
         specifier: 'catalog:'
         version: 5.1.0
+      vfile:
+        specifier: 'catalog:'
+        version: 6.0.3
       yaml:
         specifier: 'catalog:'
         version: 2.9.1
@@ -3662,6 +3695,9 @@ packages:
 
   remark-parse@11.0.0:
     resolution: {integrity: sha512-FCxlKLNGknS5ba/1lmpYijMUzX2esxW5xQqjWxw2eHFfS2MSdaHVINFmhjo+qN1WhZhNimq0dZATN9pH0IDrpA==}
+
+  remark-rehype@11.1.2:
+    resolution: {integrity: sha512-Dh7l57ianaEoIpzbp0PC9UKAdCSVklD8E5Rpw7ETfbTl3FqcOOgq5q2LVDhgGCkaBv7p24JXikPdvhhmHvKMsw==}
 
   remark-stringify@11.0.0:
     resolution: {integrity: sha512-1OSmLd3awB/t8qdoEOMazZkNsfVTeY4fTsgzcQFdXNq8ToTN4ZGwrMnlda4K6smTFKD+GRV6O48i6Z4iKgPPpw==}
@@ -8788,6 +8824,14 @@ snapshots:
       unified: 11.0.5
     transitivePeerDependencies:
       - supports-color
+
+  remark-rehype@11.1.2:
+    dependencies:
+      '@types/hast': 3.0.5
+      '@types/mdast': 4.0.4
+      mdast-util-to-hast: 13.2.1
+      unified: 11.0.5
+      vfile: 6.0.3
 
   remark-stringify@11.0.0:
     dependencies:

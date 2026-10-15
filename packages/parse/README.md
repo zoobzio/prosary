@@ -1,13 +1,12 @@
 # @prosary/parse
 
-The parse step of prosary. The parser turns Markdown into an mdast tree. It
-reads CommonMark with the GFM extensions, the directive syntax of
-[`remark-directive`](https://github.com/remarkjs/remark-directive), and YAML
-frontmatter. The parser does not validate.
+The Markdown pipeline of prosary: CommonMark to a Markdown tree (mdast) to an
+HTML tree (hast). On its own it does nothing more than that. Presets extend
+it: a preset is a pair of plugin lists, one for each side.
 
-The package carries the remark dependency. [`@prosary/kit`](../kit) uses it at
-build time to turn the content documents into trees. A runtime that receives
-a tree does not import it.
+The package carries the remark and rehype dependencies.
+[`@prosary/kit`](../kit) uses it at build time to turn the content documents
+into trees. A runtime that receives a tree does not import it.
 
 ## Install
 
@@ -18,48 +17,84 @@ pnpm add @prosary/parse
 ## Usage
 
 ```ts
-import { defineParser } from "@prosary/parse";
+import { definePipeline } from "@prosary/parse";
+import { matter } from "@prosary/parse/plugins";
 
-const { parse } = defineParser();
-const tree = parse(source);
+const pipeline = definePipeline({ presets: [matter()] });
 
-tree.data?.matter; // the frontmatter, as a map
-tree.data?.id; // the frontmatter `id`, when it is a string
+pipeline.parse(source); // the Markdown tree
+pipeline.build(source); // the HTML tree
 ```
 
-The parser keeps the position of each node, so the kit can report an issue
-with a line and a column.
+The trees keep the position of each node, so the kit can report an issue
+with a line and a column. A plugin that fails the file throws its message.
 
-## Syntax
+## Presets
 
-- **Frontmatter.** A leading YAML block moves from the tree to `data.matter`
-  on the root. A string `id` in the block also sets `data.id`. A block that
-  is not a map, or that does not parse, throws a `ParseError` with the
-  position of the block.
-- **Directives.** `:::name{attrs}` is a container, `::name{attrs}` is a leaf,
-  and `:name[text]{attrs}` is inline. Each becomes a directive node with a
-  `name` and an `attributes` map of strings. A bare attribute such as `{draft}`
-  has the value `""`.
-- **Heading ids.** A trailing `{#id}` on a heading moves to `data.id` on the
-  heading, and the marker leaves the text.
-- **GFM.** Tables, task lists, strikethrough, footnotes, and autolinks parse as
-  their mdast nodes.
+```ts
+interface Preset {
+  remark?: PluggableList;
+  rehype?: PluggableList;
+}
+```
 
-Raw HTML parses as an `html` node.
+The `remark` plugins run on the Markdown tree after it is parsed, in the order
+listed; the `rehype` plugins run on the HTML tree after the bridge. Presets
+apply in the order given. Each list is what unified's `use` takes.
 
-## Plugins
+`@prosary/parse/plugins` carries four:
 
-`remarkMatter` and `remarkHeadingId` are exported as unified plugins for a
-processor of your own.
+### `gfm(options?)`
+
+GitHub Flavored Markdown. Tables, task lists, strikethrough, footnotes, and
+autolinks parse as their nodes and build as their elements, through
+[`remark-gfm`](https://github.com/remarkjs/remark-gfm). Takes its options.
+
+### `matter()`
+
+YAML frontmatter. A leading `---` block parses as YAML and moves from the
+tree to `data.matter` on the root, of the Markdown tree and the HTML tree
+alike. A block that is not a map, or that does not parse, fails the file with
+the position of the block. `Matter` is the parsed frontmatter's type; the
+preset declares it as `matter` on the root data of both trees.
+
+### `headings()`
+
+Explicit heading ids. A trailing `{#id}` on a heading leaves the text and
+becomes the `id` of the heading element, so `## Install {#install}` builds as
+`<h2 id="install">Install</h2>`. The id starts with a letter and holds
+letters, digits, `-`, and `_`. A heading with no marker is not changed.
+
+### `directives()`
+
+The directive syntax of
+[`remark-directive`](https://github.com/remarkjs/remark-directive), built as
+marked elements.
+
+- `:::name{attrs}` … `:::` is a container and builds as a `div`
+- `::name{attrs}` is a leaf and builds as an empty `div`
+- `:name[text]{attrs}` is inline and builds as a `span`
+
+Each element carries `data-directive="name"`. An `id` or `class` attribute is
+the element's; any other attribute is a `data-` attribute. A bare attribute
+such as `{draft}` has the value `""`.
+
+```md
+:::callout{kind="warning"}
+Careful.
+:::
+```
+
+```html
+<div data-directive="callout" data-kind="warning"><p>Careful.</p></div>
+```
 
 ## Types
 
-- `Parser` is the bundle that `defineParser` returns.
-- `Matter` is the parsed frontmatter.
-- `Root` is the mdast root, re-exported with the `matter` and `id` data fields
-  that the plugins add.
-- `ParseError` is the error that `parse` throws.
+- `Pipeline` is what `definePipeline` returns.
+- `Preset` and `PipelineOptions` are what it takes.
+- `Mdast` and `Hast` are the two roots.
 
 ## Related
 
-- [`@prosary/kit`](../kit) builds the content documents through the parser.
+- [`@prosary/kit`](../kit) builds the content documents through the pipeline.

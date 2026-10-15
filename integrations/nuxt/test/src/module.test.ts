@@ -43,6 +43,8 @@ const built = vi.hoisted(() => ({
   },
   documents: ["intro.md"],
   output: "hast",
+  elements: [],
+  directives: [],
   content: {
     en: { "intro.md": '{"type":"root","children":[]}\n' },
     fr: { "intro.md": '{"type":"root","children":[],"lang":"fr"}\n' },

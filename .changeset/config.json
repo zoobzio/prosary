@@ -15,6 +15,7 @@
       "@prosary/catalog",
       "@prosary/core",
       "@prosary/kit",
+      "@prosary/parse",
       "@prosary/schema",
       "@prosary/translate",
       "@prosary/nuxt"
@@ -22,5 +23,5 @@
   ],
   "linked": [],
   "updateInternalDependencies": "patch",
-  "ignore": ["@prosary/example-nuxt"]
+  "ignore": ["@prosary/example-nuxt", "@prosary/example-prose"]
 }
