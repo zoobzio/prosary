@@ -89,6 +89,55 @@ Careful.
 <div data-directive="callout" data-kind="warning"><p>Careful.</p></div>
 ```
 
+An inline directive begins a word: it follows whitespace, the start of the
+input or an opener (`[`, `*`, `_`, `(`), and its name does not start with a
+digit. A colon inside a word is text, so `10:30`, `John 3:16` and
+`key:value` read as written. `remark-directive` on its own reads each of
+those as a directive and drops the colon; this preset puts them back. A
+directive glued to a word, as in `text:fn[1]`, is text here.
+
+### `mdc()`
+
+The component syntax of Nuxt Content, as
+[`remark-mdc`](https://github.com/nuxtlabs/remark-mdc) reads it, built as
+the same marked elements `directives()` builds. A site moving from Nuxt
+Content keeps its content as it is.
+
+- `::name{attrs}` … `::` is a block and builds as a `div`; a block nested in
+  another uses more colons, `:::name` … `:::`
+- `:name[text]{attrs}` is inline and builds as a `span`, or as a `div` when
+  it stands alone on a line
+- `#name` inside a block opens a slot, which builds as a `div` carrying
+  `data-slot="name"`
+- a `---` YAML block at the top of a block sets its props
+
+Each element carries `data-directive="name"`. An `id` or `class` attribute is
+the element's; any other attribute or prop is a `data-` attribute, a value
+that is not a string as JSON. A bare attribute such as `{draft}` has the
+value `""`.
+
+```md
+::callout{kind="warning"}
+Careful.
+
+#aside
+Or not.
+::
+```
+
+```html
+<div data-directive="callout" data-kind="warning">
+  <p>Careful.</p>
+  <div data-slot="aside"><p>Or not.</p></div>
+</div>
+```
+
+MDC also reads `[text]{attrs}` as a plain `span`, `{attrs}` after a link,
+image, emphasis or code as that element's attributes, and `{{ expr }}` as a
+`binding` component carrying the expression in `data-value`. An inline
+component begins a word and its name starts with a letter, so a colon inside
+a word is text. Document frontmatter is not MDC's; use `matter()`.
+
 ## Types
 
 - `Pipeline` is what `definePipeline` returns.

@@ -14,6 +14,7 @@ describe("entry", () => {
       "gfm",
       "headings",
       "matter",
+      "mdc",
     ]);
   });
 });
