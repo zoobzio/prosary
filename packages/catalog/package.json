@@ -1,6 +1,6 @@
 {
   "name": "@prosary/catalog",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Catalogs: locale bundles and content documents, served and consumed",
   "license": "MIT",
   "repository": {

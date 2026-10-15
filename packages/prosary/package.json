@@ -1,6 +1,6 @@
 {
   "name": "prosary",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Umbrella package for the prosary runtime",
   "license": "MIT",
   "repository": {

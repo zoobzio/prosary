@@ -1,5 +1,16 @@
 # @prosary/nuxt
 
+## 0.0.3
+
+### Patch Changes
+
+- [`3b8c3a7`](https://github.com/zoobzio/prosary/commit/3b8c3a745df16df81a0f774dfe21e073247140aa) Thanks [@zoobzio](https://github.com/zoobzio)! - Require Nuxt 4.5 or later. Earlier hosts wrote the auto-import declarations with the extension stripped, which TypeScript cannot resolve to the `.d.mts` files the build ships, so `useProsary`, the `AppProsary*` types and `<Prose>` were silently `any`.
+
+- Updated dependencies []:
+  - prosary@0.0.3
+  - @prosary/kit@0.0.3
+  - @prosary/vue@0.0.3
+
 ## 0.0.2
 
 ### Patch Changes
