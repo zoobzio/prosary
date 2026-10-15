@@ -1,5 +1,14 @@
 # @prosary/nuxt
 
+## 0.0.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @prosary/kit@0.0.2
+  - prosary@0.0.2
+  - @prosary/vue@0.0.2
+
 ## 0.0.1
 
 ### Patch Changes

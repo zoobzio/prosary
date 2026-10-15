@@ -1,5 +1,14 @@
 # @prosary/kit
 
+## 0.0.2
+
+### Patch Changes
+
+- Updated dependencies [[`dcd01cc`](https://github.com/zoobzio/prosary/commit/dcd01cc28178db7216b7614eaecdfcc085cc97d2)]:
+  - @prosary/parse@0.0.2
+  - @prosary/schema@0.0.2
+  - @prosary/translate@0.0.2
+
 ## 0.0.1
 
 ### Patch Changes
