@@ -242,6 +242,9 @@ importers:
       '@prosary/schema':
         specifier: workspace:*
         version: link:../schema
+      '@types/hast':
+        specifier: 'catalog:'
+        version: 3.0.5
       objectively:
         specifier: 'catalog:'
         version: 0.3.0
@@ -349,9 +352,6 @@ importers:
 
   packages/prosary:
     dependencies:
-      '@prosary/catalog':
-        specifier: workspace:*
-        version: link:../catalog
       '@prosary/core':
         specifier: workspace:*
         version: link:../core

@@ -1,3 +1,4 @@
+import type { Root } from "hast";
 import type { Definition, Schema } from "@prosary/schema";
 import type { Entry } from "./types";
 
@@ -23,17 +24,43 @@ const isEntry = <D extends Definition>(
 };
 
 /**
- * Whether a value is a well-formed listing: an array of entries of the
- * contract.
+ * Whether a value is a well-formed message listing: an array of entries of
+ * the contract.
  *
  * @param schema - The contract the entries' locales are checked against.
  * @param value - The value to test.
  */
-export const isListing = <D extends Definition>(
+export const isEntries = <D extends Definition>(
   schema: Schema<D>,
   value: unknown,
 ): value is Entry<D>[] => {
   return Array.isArray(value) && value.every((entry) => isEntry(schema, entry));
+};
+
+/**
+ * Whether a value is a well-formed content listing: an array of document
+ * paths.
+ *
+ * @param value - The value to test.
+ */
+export const isPaths = (value: unknown): value is string[] => {
+  return (
+    Array.isArray(value) &&
+    value.every((path) => typeof path === "string" && path.length > 0)
+  );
+};
+
+/**
+ * Whether a value is an HTML tree as the kit builds one: a root with
+ * children. The nodes within are not walked — a tree is data the renderer
+ * reads, and the kit is its only writer.
+ *
+ * @param value - The value to test.
+ */
+export const isTree = (value: unknown): value is Root => {
+  return (
+    record(value) && value.type === "root" && Array.isArray(value.children)
+  );
 };
 
 /**

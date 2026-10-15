@@ -3,16 +3,16 @@ import type { Issue } from "@prosary/schema";
 import { SchemaError } from "@prosary/schema";
 
 /**
- * Raised when a source answers the listing with something that is not a
- * list of the contract's locales — a broken source, never a state a caller
- * can reach through its own input. Carries the offending `value`.
+ * Raised when a source answers a listing with something that is not the
+ * list expected — a broken source, never a state a caller can reach through
+ * its own input. Carries the offending `value`.
  */
 export class MalformedListingError extends Error {
   readonly value: unknown;
 
-  constructor(value: unknown) {
+  constructor(value: unknown, expected: string) {
     super(
-      "source answered the listing with something that is not a list of locale entries",
+      `source answered the listing with something that is not a list of ${expected}`,
     );
     this.name = "MalformedListingError";
     this.value = value;
@@ -33,6 +33,29 @@ export class MalformedBundleError extends SchemaError {
     super(issues);
     this.name = "MalformedBundleError";
     this.locale = locale;
+  }
+}
+
+/**
+ * Raised when a source answers a document retrieval with a payload that is
+ * not an HTML tree. Carries the `locale` and `path` it was retrieved under,
+ * and the offending `value`.
+ */
+export class MalformedDocumentError extends Error {
+  readonly locale: string;
+
+  readonly path: string;
+
+  readonly value: unknown;
+
+  constructor(locale: string, path: string, value: unknown) {
+    super(
+      `source answered ${JSON.stringify(path)} in ${locale} with something that is not an HTML tree`,
+    );
+    this.name = "MalformedDocumentError";
+    this.locale = locale;
+    this.path = path;
+    this.value = value;
   }
 }
 

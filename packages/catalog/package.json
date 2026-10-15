@@ -1,7 +1,7 @@
 {
   "name": "@prosary/catalog",
   "version": "0.0.0",
-  "description": "Locale catalogs: providers and wire-protocol clients",
+  "description": "Catalogs: locale bundles and content documents, served and consumed",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@prosary/schema": "workspace:*",
+    "@types/hast": "catalog:",
     "objectively": "catalog:"
   }
 }

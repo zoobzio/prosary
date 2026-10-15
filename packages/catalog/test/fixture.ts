@@ -19,3 +19,11 @@ export const entries = [
   { id: "en", name: "English" },
   { id: "fr", name: "français" },
 ];
+
+/** The documents the content serves, and one tree per locale. */
+export const paths = ["guide/intro.md", "faq.md"];
+
+export const trees = {
+  en: { type: "root", children: [{ type: "text", value: "Hello" }] },
+  fr: { type: "root", children: [{ type: "text", value: "Bonjour" }] },
+};
