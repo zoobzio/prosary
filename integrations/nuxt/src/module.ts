@@ -138,27 +138,13 @@ export default defineNuxtModule<NuxtProsaryConfig>({
 
     /*
      * `Prose`, the component that renders a document with the overrides.
-     * Nuxt types a component by its path with the extension left off, which
-     * reaches a `.ts` source but not the `.mjs` the build emits. Registered
-     * through the build directory — a module that re-exports the runtime
-     * file, with a declaration beside it — the component is typed either way.
+     * Nuxt types a component by its path relative to the build directory
+     * with the extension stripped, which resolves to the `.d.ts` beside the
+     * runtime file.
      */
-    const document = resolve(nuxt.options.buildDir, MODULES, "document");
-    addTemplate({
-      filename: `${MODULES}/document.mjs`,
-      write: true,
-      getContents: () =>
-        `export { default } from ${JSON.stringify(files.document)};\n`,
-    });
-    addTemplate({
-      filename: `${MODULES}/document.d.ts`,
-      write: true,
-      getContents: () =>
-        `export { default } from ${JSON.stringify(files.document.replace(/\.ts$/, ""))};\n`,
-    });
     addComponent({
       name: "Prose",
-      filePath: `${document}.mjs`,
+      filePath: files.document,
     });
 
     addPlugin({
