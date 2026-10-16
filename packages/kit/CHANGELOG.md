@@ -1,5 +1,14 @@
 # @prosary/kit
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @prosary/parse@0.0.5
+  - @prosary/schema@0.0.5
+  - @prosary/translate@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@prosary/vue",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Vue renderer for prosary content: an HTML tree to vnodes, with component overrides",
   "license": "MIT",
   "repository": {

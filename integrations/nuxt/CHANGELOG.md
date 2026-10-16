@@ -1,5 +1,16 @@
 # @prosary/nuxt
 
+## 0.0.5
+
+### Patch Changes
+
+- [`230a187`](https://github.com/zoobzio/prosary/commit/230a187f7d1afa64a22f7682153d722445564a23) Thanks [@zoobzio](https://github.com/zoobzio)! - Register `<Prose>` from its runtime file, so Nuxt writes its type against the `.d.ts` beside it. Registered through a module under the build directory, the type pointed at a bare specifier TypeScript could not resolve, and `Prose` was `any` wherever it was imported from `#components`.
+
+- Updated dependencies []:
+  - prosary@0.0.5
+  - @prosary/kit@0.0.5
+  - @prosary/vue@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes

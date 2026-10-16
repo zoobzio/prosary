@@ -1,6 +1,6 @@
 {
   "name": "@prosary/kit",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Build kit: enumerated content to per-locale JSON and typed modules",
   "license": "MIT",
   "repository": {
