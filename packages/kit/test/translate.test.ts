@@ -308,14 +308,27 @@ describe("translate", () => {
     await expect(build({ root })).resolves.toBeDefined();
   });
 
+  it("rejects a model that is not a name", async () => {
+    await writeFile(
+      join(root, "prosary.config.ts"),
+      `export default ${JSON.stringify({ ...CONFIG, translate: { ...CONFIG.translate, model: { modelId: "x" } } })};\n`,
+    );
+    await expect(translate({ root, translator: echo() })).rejects.toThrow(
+      /translate\.model must be a model named as provider\/model/,
+    );
+    await expect(build({ root })).rejects.toThrow(
+      /translate\.model must be a model named as provider\/model/,
+    );
+  });
+
   it("translates by the options a run is given, over the config's", async () => {
     const translator = echo();
     await translate({
       root,
       translator,
-      translate: { model: "other/model" },
+      translate: { model: "anthropic/other" },
     });
-    expect(translator.mock.calls[0]?.[1]).toEqual({ model: "other/model" });
+    expect(translator.mock.calls[0]?.[1]).toEqual({ model: "anthropic/other" });
     await expect(
       translate({ root, translator, translate: {} as never }),
     ).rejects.toThrow("translate.model is required");

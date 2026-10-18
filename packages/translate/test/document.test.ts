@@ -1,13 +1,39 @@
 import type { LanguageModelV4CallOptions } from "@ai-sdk/provider";
 
 import { MockLanguageModelV4 } from "ai/test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { DOCUMENT_PROMPT, translateDocument } from "../src/document";
 import {
   TranslationIncompleteError,
   TranslationRefusedError,
 } from "../src/error";
+
+import type { LanguageModel } from "ai";
+
+import type { Model } from "../src/model";
+
+/** The mock models of this file, by the name a test hands the translator. */
+const MODELS = new Map<string, LanguageModel>();
+
+// The resolver is the seam to a provider's package: here it hands back the
+// mock a test registered under the name, so no provider is ever loaded.
+vi.mock("../src/model", () => ({
+  resolveModel: async (name: string) => {
+    const model = MODELS.get(name);
+    if (model === undefined) {
+      throw new Error(`no mock model named ${name}`);
+    }
+    return model;
+  },
+}));
+
+/** Registers a mock model, and returns the name to pass as `model`. */
+const use = (model: LanguageModel): Model => {
+  const name: Model = `anthropic/test-${MODELS.size}`;
+  MODELS.set(name, model);
+  return name;
+};
 
 /** The text of one role's message in a call's prompt. */
 const said = (call: LanguageModelV4CallOptions, role: "system" | "user") => {
@@ -52,17 +78,20 @@ const REQUEST = {
 describe("translateDocument", () => {
   it("resolves the translated document, ending as its source does", async () => {
     const model = fixed("\n# Bienvenue\n\nBonjour.\n\n");
-    await expect(translateDocument(REQUEST, { model })).resolves.toBe(
-      "# Bienvenue\n\nBonjour.\n",
-    );
     await expect(
-      translateDocument({ ...REQUEST, document: "# Welcome" }, { model }),
+      translateDocument(REQUEST, { model: use(model) }),
+    ).resolves.toBe("# Bienvenue\n\nBonjour.\n");
+    await expect(
+      translateDocument(
+        { ...REQUEST, document: "# Welcome" },
+        { model: use(model) },
+      ),
     ).resolves.toBe("# Bienvenue\n\nBonjour.");
   });
 
   it("sends the locales and the document under the base prompt", async () => {
     const model = fixed("# Bienvenue");
-    await translateDocument(REQUEST, { model });
+    await translateDocument(REQUEST, { model: use(model) });
     const [call] = model.doGenerateCalls;
     expect(said(call!, "system")).toBe(DOCUMENT_PROMPT);
     expect(said(call!, "user")).toBe(
@@ -75,7 +104,7 @@ describe("translateDocument", () => {
     const model = fixed("# Bienvenue");
     await translateDocument(
       { ...REQUEST, previous: "# Bienvenue\n\nSalut.\n" },
-      { model },
+      { model: use(model) },
     );
     expect(said(model.doGenerateCalls[0]!, "user")).toContain(
       "<existing_translation>\n# Bienvenue\n\nSalut.\n\n</existing_translation>",
@@ -85,7 +114,7 @@ describe("translateDocument", () => {
   it("applies the project's instructions and the SDK's settings", async () => {
     const model = fixed("# Bienvenue");
     await translateDocument(REQUEST, {
-      model,
+      model: use(model),
       instructions: "Address the reader informally.",
       temperature: 0.2,
       size: 10,
@@ -99,7 +128,7 @@ describe("translateDocument", () => {
 
   it("throws when the model declines", async () => {
     const error = await translateDocument(REQUEST, {
-      model: fixed("", "content-filter"),
+      model: use(fixed("", "content-filter")),
     }).catch((reason: unknown) => reason);
     expect(error).toBeInstanceOf(TranslationRefusedError);
     expect(error).toMatchObject({ keys: ["guide/intro.md"] });
@@ -107,7 +136,7 @@ describe("translateDocument", () => {
 
   it("throws when the response runs out of tokens", async () => {
     const error = await translateDocument(REQUEST, {
-      model: fixed("# Bien", "length"),
+      model: use(fixed("# Bien", "length")),
     }).catch((reason: unknown) => reason);
     expect(error).toBeInstanceOf(TranslationIncompleteError);
     expect(error).toMatchObject({ reason: "length" });

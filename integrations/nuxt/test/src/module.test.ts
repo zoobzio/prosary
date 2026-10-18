@@ -248,7 +248,10 @@ describe("prosary module", () => {
       order.push("build");
       return built as never;
     });
-    const options = { model: "test/model", instructions: "Be brief." };
+    const options = {
+      model: "anthropic/test",
+      instructions: "Be brief.",
+    } as const;
     await mod.setup({ translate: options }, nuxt());
     expect(translate).toHaveBeenCalledWith({
       root: "/app",
@@ -269,7 +272,7 @@ describe("prosary module", () => {
         documents: { written: ["intro.md"], rejected: {}, pending: [] },
       },
     });
-    await mod.setup({ translate: { model: "test/model" } }, nuxt());
+    await mod.setup({ translate: { model: "anthropic/test" } }, nuxt());
     expect(logger.info).toHaveBeenCalledWith(
       "fr: translated 1 messages and 1 documents",
     );
@@ -283,7 +286,7 @@ describe("prosary module", () => {
   it("does not translate while preparing", async () => {
     const app = nuxt();
     app.options._prepare = true;
-    await mod.setup({ translate: { model: "test/model" } }, app);
+    await mod.setup({ translate: { model: "anthropic/test" } }, app);
     expect(translate).not.toHaveBeenCalled();
     expect(resolveKit).toHaveBeenCalled();
   });
@@ -292,7 +295,7 @@ describe("prosary module", () => {
     const failure = new Error("no API key");
     vi.mocked(translate).mockRejectedValueOnce(failure);
     await expect(
-      mod.setup({ translate: { model: "test/model" } }, nuxt()),
+      mod.setup({ translate: { model: "anthropic/test" } }, nuxt()),
     ).rejects.toBe(failure);
     expect(resolveKit).not.toHaveBeenCalled();
   });
@@ -395,7 +398,7 @@ describe("prosary module, over a build made elsewhere", () => {
       {
         build: built,
         config: "prosary.config.ts",
-        translate: { model: "test/model" },
+        translate: { model: "anthropic/test" },
       },
       nuxt(join(root, "app")),
     );

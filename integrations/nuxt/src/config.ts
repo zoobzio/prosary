@@ -26,7 +26,8 @@ export interface NuxtProsaryConfig {
   config?: string;
 
   /**
-   * How to translate: the model — from any AI SDK provider — its call
+   * How to translate: the model — named as `provider/model`, from
+   * `@ai-sdk/anthropic`, `@ai-sdk/openai` or `@ai-sdk/google` — its call
    * settings, and the project's instructions, as the kit config's `translate`
    * carries them beside the source and the targets. Present, the module
    * translates before it builds, exactly as `prosary translate` does: what

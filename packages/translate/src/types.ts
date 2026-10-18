@@ -1,24 +1,73 @@
-import type { CallSettings, LanguageModel, generateText } from "ai";
+import type { Model } from "./model";
+
+/** A JSON value: what a provider option can hold. */
+export type JsonValue =
+  | null
+  | string
+  | number
+  | boolean
+  | readonly JsonValue[]
+  | { readonly [key: string]: JsonValue };
 
 /**
- * How a translation runs. Everything about execution is the AI SDK's own —
- * the model, the call settings, the provider options — so what the SDK and
- * its providers support is what a project can configure; `instructions` and
- * `size` are the only options of this package's making.
+ * The call settings handed to the AI SDK as they are: the subset of its
+ * own `CallSettings` that is plain data, so a config file can carry them
+ * without importing the SDK.
  */
-export interface TranslateOptions extends CallSettings {
+export interface Settings {
+  /** The most tokens a response may hold. */
+  maxOutputTokens?: number;
+
+  /** The sampling temperature; `0` is the most deterministic. */
+  temperature?: number;
+
+  /** Nucleus sampling: the probability mass to sample from. */
+  topP?: number;
+
+  /** The number of top tokens to sample from. */
+  topK?: number;
+
+  /** How much a token already present in the response is discouraged. */
+  presencePenalty?: number;
+
+  /** How much a token's repetition is discouraged. */
+  frequencyPenalty?: number;
+
+  /** Sequences that end the response when generated. */
+  stopSequences?: string[];
+
+  /** A seed for deterministic sampling, where the provider supports one. */
+  seed?: number;
+
+  /** How many times a failed request is retried. The SDK's default is 2. */
+  maxRetries?: number;
+
+  /** Extra HTTP headers sent with every request. */
+  headers?: Record<string, string | undefined>;
+}
+
+/**
+ * How a translation runs: the model, named as `provider/model`, the call
+ * settings and provider options the SDK takes as they are, and the two
+ * options of this package's making, `instructions` and `size`. Plain data
+ * throughout, so a `prosary.config.ts` carries it without importing a
+ * model or its SDK.
+ */
+export interface TranslateOptions extends Settings {
   /**
-   * The model that translates: a model from any AI SDK provider
-   * (`@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google`, …), or a
-   * `provider/model` id resolved through the SDK's default provider.
+   * The model that translates, as `provider/model` —
+   * `anthropic/claude-sonnet-5-5`, `openai/gpt-5-mini`,
+   * `google/gemini-2.5-flash`. The provider's AI SDK package
+   * (`@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google`) must be
+   * installed, and reads its API key from the environment.
    */
-  model: LanguageModel;
+  model: Model;
 
   /**
    * Options passed through to the provider, by provider name — reasoning
    * effort, service tier, whatever the provider's own package documents.
    */
-  providerOptions?: Parameters<typeof generateText>[0]["providerOptions"];
+  providerOptions?: Record<string, Record<string, JsonValue>>;
 
   /**
    * The project's own guidance, added to the base prompt: a glossary, the

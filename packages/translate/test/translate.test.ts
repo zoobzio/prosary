@@ -1,7 +1,7 @@
 import type { LanguageModelV4CallOptions } from "@ai-sdk/provider";
 
 import { MockLanguageModelV4 } from "ai/test";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   TranslationIncompleteError,
@@ -9,6 +9,32 @@ import {
 } from "../src/error";
 import { PROMPT, system } from "../src/prompt";
 import { translate } from "../src/translate";
+
+import type { LanguageModel } from "ai";
+
+import type { Model } from "../src/model";
+
+/** The mock models of this file, by the name a test hands the translator. */
+const MODELS = new Map<string, LanguageModel>();
+
+// The resolver is the seam to a provider's package: here it hands back the
+// mock a test registered under the name, so no provider is ever loaded.
+vi.mock("../src/model", () => ({
+  resolveModel: async (name: string) => {
+    const model = MODELS.get(name);
+    if (model === undefined) {
+      throw new Error(`no mock model named ${name}`);
+    }
+    return model;
+  },
+}));
+
+/** Registers a mock model, and returns the name to pass as `model`. */
+const use = (model: LanguageModel): Model => {
+  const name: Model = `anthropic/test-${MODELS.size}`;
+  MODELS.set(name, model);
+  return name;
+};
 
 /** The text of one role's message in a call's prompt. */
 const said = (call: LanguageModelV4CallOptions, role: "system" | "user") => {
@@ -80,7 +106,7 @@ const REQUEST = {
 
 describe("translate", () => {
   it("resolves the translations by key", async () => {
-    await expect(translate(REQUEST, { model: shout() })).resolves.toEqual({
+    await expect(translate(REQUEST, { model: use(shout()) })).resolves.toEqual({
       greeting: "HELLO, {NAME}!",
       title: "WELCOME",
     });
@@ -88,7 +114,7 @@ describe("translate", () => {
 
   it("sends the locales, the messages and their descriptions", async () => {
     const model = shout();
-    await translate(REQUEST, { model });
+    await translate(REQUEST, { model: use(model) });
     expect(sent(model.doGenerateCalls[0]!)).toEqual({
       from: "en",
       to: "fr",
@@ -105,7 +131,7 @@ describe("translate", () => {
 
   it("runs under the base prompt and asks for a structured response", async () => {
     const model = shout();
-    await translate(REQUEST, { model });
+    await translate(REQUEST, { model: use(model) });
     const [call] = model.doGenerateCalls;
     expect(said(call!, "system")).toBe(PROMPT);
     expect(call?.responseFormat).toMatchObject({
@@ -117,7 +143,7 @@ describe("translate", () => {
   it("hands the SDK's own settings through, and applies its own", async () => {
     const model = shout();
     await translate(REQUEST, {
-      model,
+      model: use(model),
       temperature: 0.2,
       maxOutputTokens: 4000,
       providerOptions: { anthropic: { effort: "low" } },
@@ -139,7 +165,7 @@ describe("translate", () => {
     );
     const translations = await translate(
       { source: "en", target: "fr", messages },
-      { model, size: 2 },
+      { model: use(model), size: 2 },
     );
     expect(
       model.doGenerateCalls.map((call) =>
@@ -152,7 +178,10 @@ describe("translate", () => {
   it("makes no request for no messages", async () => {
     const model = shout();
     await expect(
-      translate({ source: "en", target: "fr", messages: {} }, { model }),
+      translate(
+        { source: "en", target: "fr", messages: {} },
+        { model: use(model) },
+      ),
     ).resolves.toEqual({});
     expect(model.doGenerateCalls).toHaveLength(0);
   });
@@ -166,14 +195,14 @@ describe("translate", () => {
         ],
       }),
     );
-    await expect(translate(REQUEST, { model })).resolves.toEqual({
+    await expect(translate(REQUEST, { model: use(model) })).resolves.toEqual({
       title: "Bienvenue",
     });
   });
 
   it("throws when the model declines", async () => {
     const error = await translate(REQUEST, {
-      model: fixed("", "content-filter"),
+      model: use(fixed("", "content-filter")),
     }).catch((reason: unknown) => reason);
     expect(error).toBeInstanceOf(TranslationRefusedError);
     expect(error).toMatchObject({ keys: ["greeting", "title"] });
@@ -181,7 +210,7 @@ describe("translate", () => {
 
   it("throws when a response runs out of tokens", async () => {
     const error = await translate(REQUEST, {
-      model: fixed('{"translations":[{"key":"gree', "length"),
+      model: use(fixed('{"translations":[{"key":"gree', "length")),
     }).catch((reason: unknown) => reason);
     expect(error).toBeInstanceOf(TranslationIncompleteError);
     expect(error).toMatchObject({ reason: "length" });
@@ -189,7 +218,7 @@ describe("translate", () => {
 
   it("throws when the response is not the structure asked for", async () => {
     const error = await translate(REQUEST, {
-      model: fixed('{"translations":"none"}'),
+      model: use(fixed('{"translations":"none"}')),
     }).catch((reason: unknown) => reason);
     expect(error).toBeInstanceOf(TranslationIncompleteError);
     expect(error).toMatchObject({ reason: "not the structure asked for" });
@@ -202,9 +231,9 @@ describe("translate", () => {
         throw failure;
       },
     });
-    await expect(translate(REQUEST, { model, maxRetries: 0 })).rejects.toBe(
-      failure,
-    );
+    await expect(
+      translate(REQUEST, { model: use(model), maxRetries: 0 }),
+    ).rejects.toBe(failure);
   });
 });
 

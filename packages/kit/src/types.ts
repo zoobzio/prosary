@@ -26,7 +26,7 @@ export interface KitConfig {
   /**
    * How the messages and the content translate: the locale they are written
    * in, the locales they are translated to, and — for `prosary translate` to
-   * call a model — the model and its settings.
+   * call a model — the model, named as `provider/model`, and its settings.
    */
   translate: TranslateConfig;
 
@@ -90,7 +90,9 @@ export interface ContentConfig {
  * The translation of a project: where it starts, where it goes, and how.
  * The model and its settings are the options of `@prosary/translate`, an
  * optional peer of the kit: installed and configured only to translate,
- * never to build.
+ * never to build. The model is a name — `anthropic/claude-sonnet-5-5`,
+ * `openai/gpt-5-mini`, `google/gemini-2.5-flash` — so the config imports no
+ * SDK; the provider's package is loaded only when a run calls the model.
  */
 export interface TranslateConfig extends Partial<TranslateOptions> {
   /**

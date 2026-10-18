@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { Source, Translate } from "./types";
 import { SIZE } from "./constant";
 import { TranslationIncompleteError, TranslationRefusedError } from "./error";
+import { resolveModel } from "./model";
 import { system } from "./prompt";
 
 /**
@@ -50,7 +51,8 @@ const batches = <T>(entries: [string, T][], size: number): [string, T][][] => {
 /**
  * Translates messages from one locale to another through the AI SDK: the
  * base prompt plus the project's instructions as the system prompt, the
- * messages as the request, and a structured response. Messages go out in
+ * messages as the request, and a structured response. The model is resolved
+ * from its name first, loading its provider's package. Messages go out in
  * batches of `size`, one request at a time; every other option is handed to
  * the SDK as it is.
  *
@@ -64,11 +66,15 @@ const batches = <T>(entries: [string, T][], size: number): [string, T][][] => {
  * @param request - The locales and the messages to translate.
  * @param options - The model, the SDK's call settings, and instructions.
  * @returns The translations, by key.
+ * @throws UnknownProviderError when the model is not named `provider/model`
+ * from a provider this package knows.
+ * @throws MissingProviderError when the provider's package is not installed.
  * @throws TranslationRefusedError when the model declines a batch.
  * @throws TranslationIncompleteError when a response is cut short.
  */
 export const translate: Translate = async (request, options) => {
-  const { instructions, size: sizeOption, ...settings } = options;
+  const { instructions, size: sizeOption, model: name, ...settings } = options;
+  const model = await resolveModel(name);
   const translations: Record<string, string> = {};
   const size = Math.max(1, Math.floor(sizeOption ?? SIZE));
 
@@ -76,6 +82,7 @@ export const translate: Translate = async (request, options) => {
     const keys = batch.map(([key]) => key);
     const answer = await generateText({
       ...settings,
+      model,
       output: OUTPUT,
       system: system(instructions),
       prompt: JSON.stringify(

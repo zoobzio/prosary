@@ -14,7 +14,9 @@ import { directives, gfm, headings, matter } from "@prosary/parse/plugins";
  * `$t.fare.seat.name()`. The French and German translations under `.i18n/`
  * mirror them, file for file; they are written by hand and checked in, so the
  * example builds with no model and no API key. To have a model maintain them
- * instead, add a `translate.model` here and run `prosary translate`.
+ * instead, add a `translate.model` here — `"anthropic/claude-sonnet-5-5"`,
+ * say, with `@ai-sdk/anthropic` installed and `ANTHROPIC_API_KEY` set — and
+ * run `prosary translate`.
  *
  * The content under `src/content/` is the prose of the site: the documents a
  * section renders whole, and the journal posts under `journal/`. Each one is

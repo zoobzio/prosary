@@ -25,6 +25,8 @@ pnpm --filter @prosary/example-prose build
   the example builds with no model and no API key
 
 To have a model maintain the translations instead, add a `translate.model` to
-the config and run `prosary translate`: it translates what the locales lack,
+the config — `"anthropic/claude-sonnet-5-5"`, say, with `@ai-sdk/anthropic`
+installed and `ANTHROPIC_API_KEY` set — and run `prosary translate`: it
+translates what the locales lack,
 brings a document up to date from the translation it has when its source
 changes, and never writes over a translation someone wrote by hand.

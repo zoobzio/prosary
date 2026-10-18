@@ -190,8 +190,14 @@ export const validate = (config: KitConfig): Settings => {
       targets = [...to];
     }
     translations = directory("translate.cache", into, TRANSLATIONS);
-    if (options.model !== undefined) {
+    // The authored value may be anything: typed only once it proves a name.
+    const model: unknown = options.model;
+    if (typeof model === "string" && model !== "") {
       run = options as TranslateOptions;
+    } else if (model !== undefined) {
+      issues.push(
+        "translate.model must be a model named as provider/model (anthropic/…, openai/…, google/…)",
+      );
     }
   }
 

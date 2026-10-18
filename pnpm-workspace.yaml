@@ -6,6 +6,9 @@ packages:
 # Every external dependency of the workspace, pinned once. A package names
 # its dependencies with `catalog:` and takes the range from here.
 catalog:
+  "@ai-sdk/anthropic": "^4.0.82"
+  "@ai-sdk/google": "^4.0.99"
+  "@ai-sdk/openai": "^4.0.96"
   "@ai-sdk/provider": "^4.0.21"
   "@changesets/changelog-github": "^0.7.0"
   "@changesets/cli": "^2.31.0"

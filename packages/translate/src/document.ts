@@ -2,6 +2,7 @@ import { generateText } from "ai";
 
 import type { TranslateDocument } from "./types";
 import { TranslationIncompleteError, TranslationRefusedError } from "./error";
+import { resolveModel } from "./model";
 
 /**
  * The base prompt every document translation runs under: what to translate,
@@ -40,9 +41,10 @@ const system = (instructions: string | undefined): string => {
 /**
  * Translates one Markdown document from one locale to another through the
  * AI SDK, or — given the translation it already has — brings that
- * translation up to date with the source. The document goes out whole, in
- * one request; every option but `instructions` and `size` is handed to the
- * SDK as it is.
+ * translation up to date with the source. The model is resolved from its
+ * name first, loading its provider's package. The document goes out whole,
+ * in one request; every option but `instructions` and `size` is handed to
+ * the SDK as it is.
  *
  * Nothing here judges the result: whether the structure survived is for the
  * caller to prove.
@@ -50,6 +52,9 @@ const system = (instructions: string | undefined): string => {
  * @param request - The locales, the document, and any existing translation.
  * @param options - The model, the SDK's call settings, and instructions.
  * @returns The translated document.
+ * @throws UnknownProviderError when the model is not named `provider/model`
+ * from a provider this package knows.
+ * @throws MissingProviderError when the provider's package is not installed.
  * @throws TranslationRefusedError when the model declines the document.
  * @throws TranslationIncompleteError when the response is cut short.
  */
@@ -57,9 +62,10 @@ export const translateDocument: TranslateDocument = async (
   request,
   options,
 ) => {
-  const { instructions, ...settings } = options;
+  const { instructions, model: name, ...settings } = options;
   // A document goes out whole: `size` is for messages, not the SDK's.
   delete settings.size;
+  const model = await resolveModel(name);
   const parts = [
     `Translate this Markdown document from ${request.source} to ${request.target}.`,
     `<document>\n${request.document}\n</document>`,
@@ -72,6 +78,7 @@ export const translateDocument: TranslateDocument = async (
 
   const result = await generateText({
     ...settings,
+    model,
     system: system(instructions),
     prompt: parts.join("\n\n"),
   });

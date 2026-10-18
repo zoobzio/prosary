@@ -31,7 +31,26 @@
     "ai": "catalog:",
     "zod": "catalog:"
   },
+  "peerDependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/google": "catalog:",
+    "@ai-sdk/openai": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
+      "optional": true
+    },
+    "@ai-sdk/openai": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@ai-sdk/anthropic": "catalog:",
+    "@ai-sdk/google": "catalog:",
+    "@ai-sdk/openai": "catalog:",
     "@ai-sdk/provider": "catalog:"
   }
 }

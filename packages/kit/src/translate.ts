@@ -200,12 +200,12 @@ export const translate = async (
     options.translate.model === undefined
   ) {
     throw new InvalidConfigError([
-      "translate.model is required: a model from an AI SDK provider",
+      "translate.model is required: a model named as provider/model",
     ]);
   }
   if (translateOptions === undefined && !check) {
     throw new InvalidConfigError([
-      "translate.model is required to translate: a model from an AI SDK provider",
+      "translate.model is required to translate: a model named as provider/model",
     ]);
   }
 

@@ -1,5 +1,7 @@
 import type { KitConfig } from "./types";
 
+export type { Model } from "@prosary/translate";
+
 /**
  * Identity helper that types a `prosary.config.ts`.
  *
