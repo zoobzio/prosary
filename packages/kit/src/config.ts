@@ -6,4 +6,4 @@ import type { KitConfig } from "./types";
  * @param config - The kit config.
  * @returns The same config.
  */
-export const defineConfig = (config: KitConfig): KitConfig => config;
+export const defineConfig = <const T extends KitConfig>(config: T): T => config;

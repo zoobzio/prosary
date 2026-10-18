@@ -185,13 +185,14 @@ importers:
         version: 3.3.13(typescript@6.0.3)
 
   examples/prose:
+    dependencies:
+      '@prosary/parse':
+        specifier: workspace:*
+        version: link:../../packages/parse
     devDependencies:
       '@prosary/kit':
         specifier: workspace:*
         version: link:../../packages/kit
-      '@prosary/parse':
-        specifier: workspace:*
-        version: link:../../packages/parse
 
   integrations/nuxt:
     dependencies:

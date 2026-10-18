@@ -1,4 +1,4 @@
-import { defineConfig } from "@prosary/kit";
+import { defineConfig } from "@prosary/kit/config";
 import { directives, gfm, headings, matter } from "@prosary/parse/plugins";
 
 /**

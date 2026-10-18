@@ -8,14 +8,17 @@
     ".": {
       "types": "./.dist/index.d.mts",
       "import": "./.dist/index.mjs"
-    }
+    },
+    "./config": "./prosary.config.ts"
   },
   "scripts": {
     "build": "prosary build",
     "translate": "prosary translate"
   },
-  "devDependencies": {
-    "@prosary/kit": "workspace:*",
+  "dependencies": {
     "@prosary/parse": "workspace:*"
+  },
+  "devDependencies": {
+    "@prosary/kit": "workspace:*"
   }
 }
