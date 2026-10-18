@@ -1,5 +1,20 @@
 # @prosary/kit
 
+## 0.0.6
+
+### Patch Changes
+
+- [`3b59564`](https://github.com/zoobzio/prosary/commit/3b5956461af8df5b9af9f51cfaa26a2481878219) Thanks [@zoobzio](https://github.com/zoobzio)! - Add a `@prosary/kit/config` entry that exports `defineConfig` alone, with no
+  runtime imports, and mark the package side-effect free. A `prosary.config.ts`
+  that imports it can be exported from a content package and loaded by a
+  consumer without pulling the kit into its graph. `defineConfig` now keeps the
+  literal type of the config it is given, so `config.content` can be passed
+  straight to `definePipeline`.
+- Updated dependencies []:
+  - @prosary/parse@0.0.6
+  - @prosary/schema@0.0.6
+  - @prosary/translate@0.0.6
+
 ## 0.0.5
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # prosary
 
+## 0.0.6
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @prosary/core@0.0.6
+  - @prosary/schema@0.0.6
+
 ## 0.0.5
 
 ### Patch Changes

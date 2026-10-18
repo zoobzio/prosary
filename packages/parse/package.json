@@ -1,6 +1,6 @@
 {
   "name": "@prosary/parse",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "The Markdown pipeline: CommonMark to an HTML tree, extended by presets",
   "license": "MIT",
   "repository": {
