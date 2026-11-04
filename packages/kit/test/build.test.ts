@@ -73,7 +73,9 @@ describe("build", () => {
       "index.d.mts",
       "index.mjs",
       "messages",
+      "messages/en.d.mts",
       "messages/en.mjs",
+      "messages/fr.d.mts",
       "messages/fr.mjs",
     ]);
     const manifest = JSON.parse(
@@ -102,7 +104,10 @@ describe("build", () => {
       `export default ${JSON.stringify({ ...CONFIG, translate: { source: "en" } })};\n`,
     );
     await build({ root });
-    expect(await readdir(join(root, "prosary/messages"))).toEqual(["en.mjs"]);
+    expect(await readdir(join(root, "prosary/messages"))).toEqual([
+      "en.d.mts",
+      "en.mjs",
+    ]);
   });
 
   it("rejects an invalid config", async () => {

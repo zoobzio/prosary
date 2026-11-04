@@ -23,7 +23,9 @@ describe("generate", () => {
       "bundles.mjs",
       "bundles.d.mts",
       "messages/en.mjs",
+      "messages/en.d.mts",
       "messages/fr.mjs",
+      "messages/fr.d.mts",
     ]);
     expect(output.coverage.fr?.missing).toEqual(["invite", "total", "terms"]);
   });

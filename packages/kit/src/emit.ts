@@ -96,13 +96,24 @@ const index = (core: Core): OutputFile[] => {
  * production. A module rather than a JSON document, so the loaders import
  * them the same way everywhere: a JSON import needs an import attribute under
  * node, and a browser refuses that attribute from a dev server, which answers
- * JSON as JavaScript.
+ * JSON as JavaScript. Each has its declaration beside it, so a consumer that
+ * imports one bundle directly — a package that formats from its source
+ * locale with no loader — holds it as the `Bundle` of the contract.
  */
 const bundles = (core: Core): OutputFile[] => {
-  return core.locales.map((locale) => ({
-    path: `${BUNDLES}/${locale}.mjs`,
-    contents: `export default ${JSON.stringify(core.bundles[locale] ?? {})};\n`,
-  }));
+  return core.locales.flatMap((locale) =>
+    pair(
+      `${BUNDLES}/${locale}`,
+      [`export default ${JSON.stringify(core.bundles[locale] ?? {})};`],
+      [
+        banner(),
+        'import type { Bundle } from "prosary";',
+        'import type { Contract } from "../index.mjs";',
+        "declare const bundle: Bundle<Contract>;",
+        "export default bundle;",
+      ],
+    ),
+  );
 };
 
 /**
@@ -153,7 +164,7 @@ const content = (core: Core): OutputFile[] => {
  *   message lists, `isLocale`, `isKey`, and the `contract` for
  *   `makeProsary`
  * - `bundles` — a lazy loader per locale, for bundlers to split on
- * - `messages/<locale>.mjs` — each locale's bundle of compiled messages
+ * - `messages/<locale>` — each locale's bundle of compiled messages
  * - `content/<locale>/<path>` — each locale's content documents, in the
  *   form the config asks for
  *
