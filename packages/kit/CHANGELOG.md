@@ -1,5 +1,16 @@
 # @prosary/kit
 
+## 0.0.9
+
+### Patch Changes
+
+- [`b14241b`](https://github.com/zoobzio/prosary/commit/b14241b874db4415c11f025df9eae314d0664534) Thanks [@zoobzio](https://github.com/zoobzio)! - Emit a declaration beside each locale bundle, `messages/<locale>.d.mts`, typed as the `Bundle` of the contract. A consumer that imports one bundle directly — a package that formats from its source locale with no loader — no longer has to declare it.
+
+- Updated dependencies []:
+  - @prosary/parse@0.0.9
+  - @prosary/schema@0.0.9
+  - @prosary/translate@0.0.9
+
 ## 0.0.8
 
 ### Patch Changes
