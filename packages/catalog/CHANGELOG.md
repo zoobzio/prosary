@@ -1,5 +1,12 @@
 # @prosary/catalog
 
+## 0.0.10
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @prosary/schema@0.0.10
+
 ## 0.0.9
 
 ### Patch Changes

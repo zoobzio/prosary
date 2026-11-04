@@ -1,5 +1,16 @@
 # @prosary/kit
 
+## 0.0.10
+
+### Patch Changes
+
+- [`4037865`](https://github.com/zoobzio/prosary/commit/40378652245a451bf6f5284fb31f284648c573a7) Thanks [@zoobzio](https://github.com/zoobzio)! - Translate what a config inherits. A config that extends others now translates the upstream's messages and documents along with its own, into its own cache, and the build reads every translation from there: an upstream is a source, not a translation, and its own translations are no longer read. The cache mirrors the merged source — an upstream's `brand.json` and the project's translate to one `<locale>/brand.json` — and the upstream's package is never written to.
+
+- Updated dependencies []:
+  - @prosary/parse@0.0.10
+  - @prosary/schema@0.0.10
+  - @prosary/translate@0.0.10
+
 ## 0.0.9
 
 ### Patch Changes
