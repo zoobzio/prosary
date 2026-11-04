@@ -1,5 +1,14 @@
 # @prosary/nuxt
 
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [[`6e04b7f`](https://github.com/zoobzio/prosary/commit/6e04b7f21a2114e84682685dc030c0f8745a20be)]:
+  - @prosary/kit@0.0.8
+  - prosary@0.0.8
+  - @prosary/vue@0.0.8
+
 ## 0.0.7
 
 ### Patch Changes
