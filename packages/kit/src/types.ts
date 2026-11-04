@@ -28,9 +28,11 @@ export interface KitConfig {
    * messages, named as the project would import it
    * (`@acme/words/config`), or as a path relative to the project root. Each
    * one's messages, content and named formats join the build, read from
-   * where that package stands, with its own translations. An upstream is
-   * read, never written: `prosary translate` translates only this config's
-   * own messages and documents.
+   * where that package stands. An upstream is a source, not a translation:
+   * what it brings is translated here, into this config's own cache, as if
+   * it were this config's — `prosary translate` translates the inherited
+   * messages and documents along with the config's own, and the build reads
+   * every translation from here. An upstream's package is never written to.
    *
    * Later wins. A key, a document or a named format this config declares
    * replaces an upstream's; between upstreams, the one listed later wins.
@@ -129,8 +131,9 @@ export interface TranslateConfig extends Partial<TranslateOptions> {
    * root: what `prosary translate` writes and the build reads, mirroring the
    * source: one `<locale>.json` per
    * target for a source that is a single file, `<locale>/<path>` per file of
-   * a source directory, and `<locale>/<path>` per content document. Defaults
-   * to `translations`.
+   * a source directory, and `<locale>/<path>` per content document. What an
+   * extended config brings mirrors the same way, by its path in that
+   * config's source. Defaults to `translations`.
    */
   cache?: string;
 }

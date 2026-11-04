@@ -11,7 +11,7 @@ import type { Origin } from "./chain";
 import { loadChain, mergeFormats } from "./chain";
 import { FILENAME, LOCK } from "./constant";
 import { checkTranslation, compileSource, knownFormats } from "./contract";
-import { checkDocument, listDocuments, readDocument } from "./documents";
+import { checkDocument, readDocument, readDocuments } from "./documents";
 import {
   InvalidConfigError,
   InvalidMessagesError,
@@ -173,9 +173,10 @@ const ordered = <T>(
  * Each locale's files and the lock are written as that locale goes, so a
  * run that fails part-way keeps what it had done.
  *
- * A config that extends others translates only its own: the messages and
- * documents of an upstream are read, for the contract and the named
- * formats a translation is checked against, and never written.
+ * A config that extends others translates what it inherits too: the
+ * messages and documents of an upstream are translated into this project's
+ * own cache, by their path in the merged source, and the upstream's package
+ * is never written to.
  *
  * With `check`, nothing is asked of a model and nothing is written: the run
  * only says, per locale, which messages and documents a real run would
@@ -230,7 +231,7 @@ export const translate = async (
   }
 
   const known = knownFormats(mergeFormats(origins));
-  const { messages: source, chunks: all } = await readSources(origins);
+  const { messages: source, chunks } = await readSources(origins);
   const contract = compileSource(source, known);
   const broken = Object.entries(contract.issues).flatMap(([key, issues]) =>
     issues.map(
@@ -240,25 +241,13 @@ export const translate = async (
   if (broken.length > 0) {
     throw new InvalidMessagesError(broken);
   }
-  // The project's own: the files it writes, and the keys it translates.
-  const chunks = all.filter((chunk) => chunk.local);
-  const owned = new Set(
-    chunks.flatMap((chunk) => chunk.keys.map((key) => `${chunk.prefix}${key}`)),
-  );
-  const keys = Object.keys(contract.messages).filter((key) => owned.has(key));
+  const keys = Object.keys(contract.messages);
 
-  const contentDir =
-    settings.content === undefined
-      ? undefined
-      : resolve(root, settings.content);
   const sources: Record<string, string> = {};
-  if (contentDir !== undefined) {
-    for (const document of await listDocuments(contentDir)) {
-      const text = await readDocument(contentDir, document);
-      if (text !== undefined) {
-        sources[document] = text;
-      }
-    }
+  for (const [document, { source: text }] of Object.entries(
+    await readDocuments(origins),
+  )) {
+    sources[document] = text;
   }
 
   // The default translators are loaded only for a run that may call them.
@@ -279,13 +268,13 @@ export const translate = async (
 
   for (const locale of targets) {
     const target = join(directory, locale);
-    // Each source file's translations as its own file holds them, and all of
-    // them together by full key.
+    // Each chunk's translations as its own file holds them, and all of them
+    // together by full key.
     const held = new Map<string, Record<string, string> | undefined>();
     const translations: Record<string, string> = {};
     for (const chunk of chunks) {
       const file = await readTranslations(chunk.translation(locale));
-      held.set(chunk.path, file);
+      held.set(chunk.prefix, file);
       for (const [key, message] of Object.entries(file ?? {})) {
         translations[`${chunk.prefix}${key}`] = message;
       }
@@ -418,7 +407,7 @@ export const translate = async (
     }
     await mkdir(directory, { recursive: true });
     for (const chunk of chunks) {
-      const file = { ...held.get(chunk.path) };
+      const file = { ...held.get(chunk.prefix) };
       for (const key of chunk.keys) {
         const full = `${chunk.prefix}${key}`;
         if (Object.hasOwn(translations, full)) {
@@ -429,7 +418,7 @@ export const translate = async (
       // a single source's one translations file always is.
       if (
         chunk.prefix !== "" &&
-        held.get(chunk.path) === undefined &&
+        held.get(chunk.prefix) === undefined &&
         Object.keys(file).length === 0
       ) {
         continue;

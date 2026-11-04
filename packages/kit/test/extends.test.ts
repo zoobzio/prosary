@@ -74,7 +74,8 @@ const issues = async (
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "prosary-kit-"));
 
-  // The installed package: messages, content, a named format, and French.
+  // The installed package: messages, content and named formats — and a
+  // French file of its own, which no build of a project extending it reads.
   await json(`${WORDS}/package.json`, {
     name: "@acme/words",
     type: "module",
@@ -100,27 +101,33 @@ beforeEach(async () => {
     save: { defaultMessage: "Save" },
     cancel: { defaultMessage: "Cancel" },
   });
-  await json(`${WORDS}/.i18n/fr/action.json`, {
-    save: "Enregistrer",
-    cancel: "Annuler",
-  });
-  await json(`${WORDS}/.i18n/fr/brand.json`, { name: "Acmé" });
+  await json(`${WORDS}/.i18n/fr/action.json`, { save: "Sauvegarder" });
   await write(
     `${WORDS}/src/content/legal.md`,
     "---\nkind: legal\n---\n\nTerms.\n",
   );
   await write(`${WORDS}/src/content/about.md`, "# About Acme\n");
-  await write(`${WORDS}/.i18n/fr/about.md`, "# À propos d'Acme\n");
 
   // The project: its own messages, one of which declares an upstream key
-  // again, and one document that replaces an upstream one.
+  // again, and one document that replaces an upstream one. Its French cache
+  // holds translations of the upstream's messages and a document beside its
+  // own, each at its path in the merged source.
   await json("messages/brand.json", {
     tagline: { defaultMessage: "Acme, {count, number, compact} strong" },
   });
   await json("messages/page.json", {
     title: { defaultMessage: "Welcome" },
   });
+  await json("translations/fr/action.json", {
+    save: "Enregistrer",
+    cancel: "Annuler",
+  });
+  await json("translations/fr/brand.json", { name: "Acmé" });
   await json("translations/fr/page.json", { title: "Bienvenue" });
+  await write(
+    "translations/fr/legal.md",
+    "---\nkind: legal\n---\n\nConditions.\n",
+  );
   await write("content/about.md", "# About us\n");
   await write("content/faq.md", "# FAQ\n");
 });
@@ -274,7 +281,7 @@ describe("resolveKit with extends", () => {
     });
   });
 
-  it("reads each config's translations from its own cache", async () => {
+  it("reads every translation from the project's cache, an upstream's included", async () => {
     const kit = await resolveKit(CONFIG, { cwd: root });
     expect(kit.bundles.fr?.["action.save"]).toEqual([
       { type: 0, value: "Enregistrer" },
@@ -289,26 +296,56 @@ describe("resolveKit with extends", () => {
     expect(kit.bundles.fr?.["brand.tagline"]).toBe(
       kit.bundles.en?.["brand.tagline"],
     );
-    // The project's about.md replaced the upstream's, French included.
+    // The upstream's legal.md is translated in the project's cache; its
+    // about.md was replaced by the project's, which is not.
     expect(kit.coverage.fr).toEqual({
       missing: ["brand.tagline"],
       orphaned: [],
-      documents: ["about.md", "legal.md", "faq.md"],
+      documents: ["about.md", "faq.md"],
     });
-    // A locale the upstream does not translate to falls back to the source.
+    // A locale with no cache yet falls back to the source throughout.
     expect(kit.coverage.de?.missing).toEqual(Object.keys(kit.messages));
   });
 
-  it("leaves an upstream's translation of an overridden key out, not orphaned", async () => {
-    await json(`${WORDS}/.i18n/fr/brand.json`, {
+  it("never reads an upstream's own translations", async () => {
+    const kit = await resolveKit(CONFIG, { cwd: root });
+    expect(kit.bundles.fr?.["action.save"]).not.toEqual([
+      { type: 0, value: "Sauvegarder" },
+    ]);
+    expect(kit.inputs).not.toContain(join(root, WORDS, ".i18n/fr/action.json"));
+  });
+
+  it("takes a translation of a key the project declared again as the project's", async () => {
+    await json("translations/fr/brand.json", {
       name: "Acmé",
-      tagline: "Des choses, livrées {when, date, calendar}",
+      tagline: "Acme, {count, number, compact} de forts",
     });
     const kit = await resolveKit(CONFIG, { cwd: root });
-    expect(kit.bundles.fr?.["brand.tagline"]).toBe(
-      kit.bundles.en?.["brand.tagline"],
-    );
+    expect(kit.bundles.fr?.["brand.tagline"]).toEqual([
+      { type: 0, value: "Acme, " },
+      { type: 2, value: "count", style: "compact" },
+      { type: 0, value: " de forts" },
+    ]);
+    expect(kit.coverage.fr?.missing).toEqual([]);
     expect(kit.coverage.fr?.orphaned).toEqual([]);
+  });
+
+  it("translates an upstream's single-file source to the project's <locale>.json", async () => {
+    await write(
+      "base/prosary.config.ts",
+      'export default { messages: "base.json", translate: { source: "en" } };\n',
+    );
+    await json("base/base.json", { greet: { defaultMessage: "Hello" } });
+    await json("translations/fr.json", { greet: "Bonjour" });
+    const kit = await resolveKit(
+      {
+        ...CONFIG,
+        extends: ["./base/prosary.config.ts", "@acme/words/config"],
+      },
+      { cwd: root },
+    );
+    expect(kit.bundles.fr?.greet).toEqual([{ type: 0, value: "Bonjour" }]);
+    expect(kit.inputs).toContain(join(root, "translations/fr.json"));
   });
 
   it("merges the content, each document built with its own presets", async () => {
@@ -323,8 +360,17 @@ describe("resolveKit with extends", () => {
       data?: { matter?: unknown };
     };
     expect(legal.data?.matter).toEqual({ kind: "legal" });
-    // The project's about.md replaced the upstream's, translation and all.
+    // The project's about.md replaced the upstream's; untranslated, it is
+    // the source's in French too.
     expect(kit.content.fr?.["about.md"]).toBe(kit.content.en?.["about.md"]);
+    // The upstream's legal.md, translated in the project's cache, is built
+    // with the upstream's presets.
+    const legalFr = JSON.parse(kit.content.fr?.["legal.md"] ?? "") as {
+      data?: { matter?: unknown };
+      children: { children: { value: string }[] }[];
+    };
+    expect(legalFr.data?.matter).toEqual({ kind: "legal" });
+    expect(legalFr.children[0]?.children[0]?.value).toBe("Conditions.");
   });
 
   it("lists every file it read, the upstream's config included", async () => {
@@ -333,14 +379,14 @@ describe("resolveKit with extends", () => {
       expect.arrayContaining([
         join(root, WORDS, "src/messages/action.json"),
         join(root, WORDS, "prosary.config.ts"),
-        join(root, WORDS, ".i18n/fr/action.json"),
         join(root, WORDS, "src/content/legal.md"),
         join(root, "messages/page.json"),
+        join(root, "translations/fr/action.json"),
         join(root, "translations/fr/page.json"),
+        join(root, "translations/fr/legal.md"),
         join(root, "content/faq.md"),
       ]),
     );
-    expect(kit.inputs).not.toContain(join(root, WORDS, ".i18n/fr/about.md"));
   });
 
   it("emits the merged contract", async () => {
@@ -387,26 +433,80 @@ describe("translate with extends", () => {
       ),
     );
 
-  it("translates only the project's own messages and documents", async () => {
+  it("translates what the project inherits along with its own, into its cache", async () => {
     await configured();
     const translator = marking();
     const documentTranslator = vi.fn(
-      async ({ document }: { document: string }) => document,
+      async ({ document, target }: { document: string; target: string }) =>
+        `${document}<!-- ${target} -->\n`,
     );
-    const output = await translate({
-      root,
-      translator,
-      documentTranslator,
-      locales: ["fr"],
-    });
+    const output = await translate({ root, translator, documentTranslator });
+    // French has most of it already — a translation with no record is
+    // someone's own — and lacks the project's redeclared key and documents.
     expect(output.fr?.written).toEqual(["brand.tagline"]);
     expect(output.fr?.documents.written).toEqual(["about.md", "faq.md"]);
     expect(await read("translations/fr/brand.json")).toEqual({
+      name: "Acmé",
       tagline: "[fr] Acme, {count, number, compact} strong",
     });
-    expect(await exists("translations/fr/action.json")).toBe(false);
-    expect(await exists(`${WORDS}/.i18n/fr/legal.md`)).toBe(false);
+    expect(await read("translations/fr/action.json")).toEqual({
+      save: "Enregistrer",
+      cancel: "Annuler",
+    });
+    // German has nothing: every message and document of the chain.
+    expect(output.de?.written).toEqual([
+      "action.save",
+      "action.cancel",
+      "brand.name",
+      "brand.tagline",
+      "page.title",
+    ]);
+    expect(output.de?.documents.written).toEqual([
+      "about.md",
+      "legal.md",
+      "faq.md",
+    ]);
+    expect(await read("translations/de/action.json")).toEqual({
+      save: "[de] Save",
+      cancel: "[de] Cancel",
+    });
+    expect(await read("translations/de/brand.json")).toEqual({
+      name: "[de] Acme",
+      tagline: "[de] Acme, {count, number, compact} strong",
+    });
+    expect(await readFile(join(root, "translations/de/legal.md"), "utf8")).toBe(
+      "---\nkind: legal\n---\n\nTerms.\n<!-- de -->\n",
+    );
+    // The upstream's package is never written to.
     expect(await exists(`${WORDS}/.i18n/de`)).toBe(false);
+    expect(await exists(`${WORDS}/.i18n/fr/legal.md`)).toBe(false);
+    expect(await read(`${WORDS}/.i18n/fr/action.json`)).toEqual({
+      save: "Sauvegarder",
+    });
+  });
+
+  it("translates an upstream's single-file source to the project's <locale>.json", async () => {
+    await write(
+      "base/prosary.config.ts",
+      'export default { messages: "base.json", translate: { source: "en" } };\n',
+    );
+    await json("base/base.json", { greet: { defaultMessage: "Hello" } });
+    await write(
+      "prosary.config.ts",
+      configure({
+        ...CONFIG,
+        extends: ["./base/prosary.config.ts", "@acme/words/config"],
+        translate: { ...CONFIG.translate, model: "openai/test" },
+      }),
+    );
+    const output = await translate({
+      root,
+      translator: marking(),
+      documentTranslator: async ({ document }) => document,
+      locales: ["de"],
+    });
+    expect(output.de?.written).toContain("greet");
+    expect(await read("translations/de.json")).toEqual({ greet: "[de] Hello" });
   });
 
   it("checks against the upstream's named formats", async () => {
@@ -425,11 +525,22 @@ describe("translate with extends", () => {
     ]);
   });
 
-  it("reports only the project's own as pending on a check", async () => {
+  it("reports the inherited as pending on a check, like the project's own", async () => {
     await configured();
     const output = await translate({ root, check: true });
     expect(output.fr?.pending).toEqual(["brand.tagline"]);
     expect(output.fr?.documents.pending).toEqual(["about.md", "faq.md"]);
-    expect(output.de?.pending).toEqual(["brand.tagline", "page.title"]);
+    expect(output.de?.pending).toEqual([
+      "action.save",
+      "action.cancel",
+      "brand.name",
+      "brand.tagline",
+      "page.title",
+    ]);
+    expect(output.de?.documents.pending).toEqual([
+      "about.md",
+      "legal.md",
+      "faq.md",
+    ]);
   });
 });

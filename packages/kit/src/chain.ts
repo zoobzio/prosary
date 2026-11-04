@@ -23,8 +23,9 @@ export interface Origin {
   settings: Settings;
 
   /**
-   * Whether this is the project's own config — the one `prosary translate`
-   * writes for. An upstream is read, never written.
+   * Whether this is the project's own config — the one whose cache holds
+   * every translation, and whose root a build writes under. An upstream's
+   * package is read, never written.
    */
   local: boolean;
 

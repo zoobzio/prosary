@@ -11,35 +11,35 @@ import { readSource } from "./read";
 const EXTENSION = ".json";
 
 /**
- * One file of source messages, and where each locale's translation of it
- * lives.
+ * One file of translations, and the source files it translates: the file
+ * at one path of the source, from every config of the chain that has one.
+ * `brand.json` of an upstream and `brand.json` of the project are one
+ * chunk — their keys nest under the same prefix, and translate to one file.
  */
 export interface Chunk {
-  /** The absolute path of the source file. */
-  path: string;
+  /**
+   * The absolute paths of the source files, in chain order: an upstream's
+   * before the project's own.
+   */
+  sources: string[];
 
   /**
-   * What the file's keys nest under: `foo.bar.` for `foo/bar.json` in a
-   * source directory, empty for a source that is a single file.
+   * What the keys nest under: `foo.bar.` for `foo/bar.json` in a source
+   * directory, empty for a source that is a single file.
    */
   prefix: string;
 
   /**
-   * The file's own keys, as authored and in order — less any a later
-   * config declared again, which are that config's now.
+   * The keys, as authored and in order — each one's, less any a later
+   * config declared again, which follow as that config's.
    */
   keys: string[];
 
   /**
-   * Whether the file is the project's own, rather than an extended
-   * config's. What `prosary translate` writes translations for.
-   */
-  local: boolean;
-
-  /**
-   * The absolute path of a locale's translations of the file:
-   * `<translations>/<locale>/<path>` for a file of a source directory,
-   * `<translations>/<locale>.json` for a source that is a single file.
+   * The absolute path of a locale's translations of the chunk, in the
+   * project's own cache: `<translations>/<locale>/<path>` for a file of a
+   * source directory, `<translations>/<locale>.json` for a source that is a
+   * single file.
    */
   translation: (locale: string) => string;
 }
@@ -49,7 +49,10 @@ export interface Sources {
   /** Every message by its full key, in file then authored order. */
   messages: Record<string, Descriptor>;
 
-  /** The files the messages were read from, sorted by path. */
+  /**
+   * The translation files the messages belong to, in the order they were
+   * first met: each config's files sorted by path, upstreams first.
+   */
   chunks: Chunk[];
 }
 
@@ -78,23 +81,32 @@ const list = async (directory: string): Promise<string[] | undefined> => {
 };
 
 /** A source file of one config, before it is read. */
-type File = Omit<Chunk, "keys">;
+interface File {
+  /** The absolute path of the source file. */
+  path: string;
+
+  /** What the file's keys nest under. */
+  prefix: string;
+
+  /** Where a locale's translations of the file live. */
+  translation: (locale: string) => string;
+}
 
 /**
  * The source files of one config: the one file, or every `.json` document
  * under the directory, each with where its translations live.
+ *
+ * @param origin - The config.
+ * @param translations - The absolute directory of the project's translations.
  */
-const files = async (origin: Origin): Promise<File[]> => {
-  const { root, settings, local } = origin;
-  const source = resolve(root, settings.messages);
-  const translations = resolve(root, settings.translations);
+const files = async (origin: Origin, translations: string): Promise<File[]> => {
+  const source = resolve(origin.root, origin.settings.messages);
   const paths = await list(source);
   if (paths === undefined) {
     return [
       {
         path: source,
         prefix: "",
-        local,
         translation: (locale: string) => join(translations, `${locale}.json`),
       },
     ];
@@ -102,7 +114,6 @@ const files = async (origin: Origin): Promise<File[]> => {
   return paths.map((path) => ({
     path: join(source, path),
     prefix: `${path.slice(0, -EXTENSION.length).replaceAll("/", ".")}.`,
-    local,
     translation: (locale: string) => join(translations, locale, path),
   }));
 };
@@ -117,7 +128,12 @@ const files = async (origin: Origin): Promise<File[]> => {
  * A dot in a key nests the same way a directory does, so a key may neither
  * be declared twice in one config nor be both a message and a group of
  * messages. Between configs, later wins: a key a later config declares
- * again replaces the earlier message, and leaves the earlier file's chunk.
+ * again replaces the earlier message, and is that config's now.
+ *
+ * Every translation lives in the project's own cache, an upstream's
+ * included — a config that extends others translates what it inherits. The
+ * translations mirror the merged source, so the files of two configs at one
+ * path form one chunk, translated to one file.
  *
  * @param origins - The configs, the project's own last.
  * @throws InvalidDocumentError when a file is missing, is not JSON, or an
@@ -125,18 +141,30 @@ const files = async (origin: Origin): Promise<File[]> => {
  * @throws InvalidMessagesError when the keys do not form a tree.
  */
 export const readSources = async (origins: Origin[]): Promise<Sources> => {
+  const project = origins[origins.length - 1] as Origin;
+  const translations = resolve(project.root, project.settings.translations);
   const messages: Record<string, Descriptor> = {};
   const owners: Record<string, { name: string; origin: Origin; chunk: Chunk }> =
     {};
-  const chunks: Chunk[] = [];
+  const chunks = new Map<string, Chunk>();
   const issues: string[] = [];
   for (const origin of origins) {
-    for (const file of await files(origin)) {
+    for (const file of await files(origin, translations)) {
       const read = await readSource(file.path);
       const path = normalize(relative(origin.root, file.path));
       const name =
         origin.label === undefined ? path : `${path} (${origin.label})`;
-      const chunk: Chunk = { ...file, keys: [] };
+      let chunk = chunks.get(file.prefix);
+      if (chunk === undefined) {
+        chunk = {
+          sources: [],
+          prefix: file.prefix,
+          keys: [],
+          translation: file.translation,
+        };
+        chunks.set(file.prefix, chunk);
+      }
+      chunk.sources.push(file.path);
       for (const [local, descriptor] of Object.entries(read)) {
         const key = `${file.prefix}${local}`;
         if (key.split(".").includes("")) {
@@ -161,7 +189,6 @@ export const readSources = async (origins: Origin[]): Promise<Sources> => {
         owners[key] = { name, origin, chunk };
         chunk.keys.push(local);
       }
-      chunks.push(chunk);
     }
   }
 
@@ -180,5 +207,5 @@ export const readSources = async (origins: Origin[]): Promise<Sources> => {
   if (issues.length > 0) {
     throw new InvalidMessagesError(issues);
   }
-  return { messages, chunks };
+  return { messages, chunks: [...chunks.values()] };
 };

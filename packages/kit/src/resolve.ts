@@ -12,25 +12,10 @@ import type {
 import { loadChain, mergeFormats } from "./chain";
 import { createBuilder } from "./content";
 import { checkTranslation, compileSource, knownFormats } from "./contract";
-import { listDocuments, readDocument } from "./documents";
+import { readDocument, readDocuments } from "./documents";
 import { InvalidMessagesError } from "./error";
 import { readTranslations } from "./read";
 import { readSources } from "./sources";
-
-/** A content document as one config holds it: its text, and where it came from. */
-interface Held {
-  /** The config that owns the document. */
-  origin: Origin;
-
-  /** The absolute path of the source document. */
-  file: string;
-
-  /** The source document. */
-  source: string;
-
-  /** The document built in the form the config asks for. */
-  built: string;
-}
 
 /**
  * Resolves a kit config to everything a build emits: validates the config,
@@ -48,9 +33,9 @@ interface Held {
  * translation.
  *
  * A config that extends others brings their messages, content and named
- * formats into the build, each read from its own package with its own
- * translations and built with its own presets; what the config declares
- * itself wins (see {@link loadChain}).
+ * formats into the build, each read from its own package and built with its
+ * own presets, translated from this project's own cache like everything
+ * else; what the config declares itself wins (see {@link loadChain}).
  *
  * @param config - The kit config.
  * @param options - The project root.
@@ -73,7 +58,7 @@ export const resolveKit = async (
   const known = knownFormats(formats);
 
   const { messages: source, chunks } = await readSources(origins);
-  const inputs = chunks.map((chunk) => chunk.path);
+  const inputs = chunks.flatMap((chunk) => chunk.sources);
   for (const origin of origins) {
     if (origin.path !== undefined) {
       inputs.push(origin.path);
@@ -91,7 +76,6 @@ export const resolveKit = async (
   // The content: every source document of every config, then each locale's
   // translation of it — or the source document where a locale has none —
   // each built with its config's presets, in the form this config asks for.
-  // A document a later config holds at the same path replaces the earlier.
   const builders = new Map<Origin, Builder>();
   const builderOf = (origin: Origin): Builder => {
     let builder = builders.get(origin);
@@ -101,34 +85,18 @@ export const resolveKit = async (
     }
     return builder;
   };
-  const held: Record<string, Held> = {};
-  for (const origin of origins) {
-    if (origin.settings.content === undefined) {
-      continue;
-    }
-    const contentDir = resolve(origin.root, origin.settings.content);
-    for (const path of await listDocuments(contentDir)) {
-      const file = resolve(contentDir, path);
-      const document = await readDocument(contentDir, path);
-      if (document === undefined) {
-        continue;
-      }
-      held[path] = {
-        origin,
-        file,
-        source: document,
-        built: builderOf(origin).build(document, settings.output, file),
-      };
-      inputs.push(file);
-    }
-  }
+  const held = await readDocuments(origins);
   const built: Record<string, string> = {};
-  for (const [path, { built: document }] of Object.entries(held)) {
-    built[path] = document;
+  for (const [path, { origin, file, source: document }] of Object.entries(
+    held,
+  )) {
+    built[path] = builderOf(origin).build(document, settings.output, file);
+    inputs.push(file);
   }
   const content: Record<string, Record<string, string>> = {
     [settings.source]: built,
   };
+  const translations = resolve(root, settings.translations);
 
   const bundles: Record<string, Bundle> = { [settings.source]: reference };
   const coverage: Record<string, Coverage> = {};
@@ -142,13 +110,7 @@ export const resolveKit = async (
       }
       inputs.push(path);
       for (const [key, message] of Object.entries(translations)) {
-        const full = `${chunk.prefix}${key}`;
-        // A translation of a key another config declared again is that
-        // config's to translate: neither used nor orphaned.
-        if (Object.hasOwn(source, full) && !chunk.keys.includes(key)) {
-          continue;
-        }
-        translated[full] = message;
+        translated[`${chunk.prefix}${key}`] = message;
       }
     }
 
@@ -178,16 +140,12 @@ export const resolveKit = async (
     }
     const localized: Record<string, string> = {};
     const untranslated: string[] = [];
-    for (const [path, { origin, built: document }] of Object.entries(held)) {
-      const translatedDir = resolve(
-        origin.root,
-        origin.settings.translations,
-        locale,
-      );
+    const translatedDir = resolve(translations, locale);
+    for (const [path, { origin }] of Object.entries(held)) {
       const translation = await readDocument(translatedDir, path);
       if (translation === undefined) {
         untranslated.push(path);
-        localized[path] = document;
+        localized[path] = built[path] as string;
       } else {
         const file = resolve(translatedDir, path);
         localized[path] = builderOf(origin).build(

@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
+import type { Origin } from "./chain";
 import { normalize } from "./path";
 
 /** The extension of the documents the content pipeline carries. */
@@ -46,6 +47,45 @@ export const readDocument = async (
     }
     throw error;
   }
+};
+
+/** A content document as the chain holds it: its text, and where it came from. */
+export interface Document {
+  /** The config that owns the document. */
+  origin: Origin;
+
+  /** The absolute path of the source document. */
+  file: string;
+
+  /** The source document. */
+  source: string;
+}
+
+/**
+ * Reads the content documents of a chain of configs: every `.md` document
+ * under each config's content directory, by its posix path under that
+ * directory. Between configs, later wins: a document a later config holds at
+ * the same path replaces the earlier one.
+ *
+ * @param origins - The configs, the project's own last.
+ */
+export const readDocuments = async (
+  origins: Origin[],
+): Promise<Record<string, Document>> => {
+  const documents: Record<string, Document> = {};
+  for (const origin of origins) {
+    if (origin.settings.content === undefined) {
+      continue;
+    }
+    const directory = resolve(origin.root, origin.settings.content);
+    for (const path of await listDocuments(directory)) {
+      const source = await readDocument(directory, path);
+      if (source !== undefined) {
+        documents[path] = { origin, file: resolve(directory, path), source };
+      }
+    }
+  }
+  return documents;
 };
 
 /**
