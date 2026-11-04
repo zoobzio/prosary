@@ -19,6 +19,7 @@ import { inside, normalize } from "./path";
 /** A config through {@link validate}: defaults applied, paths normalized. */
 export interface Settings {
   messages: string;
+  extends: string[];
   source: string;
   targets: string[];
   translations: string;
@@ -148,6 +149,21 @@ export const validate = (config: KitConfig): Settings => {
     );
   }
 
+  /* The configs this one builds on: each a specifier, as written. */
+  let upstreams: string[] = [];
+  if (config.extends !== undefined) {
+    const listed = Array.isArray(config.extends)
+      ? config.extends
+      : [config.extends];
+    if (!listed.every((entry) => typeof entry === "string" && entry !== "")) {
+      issues.push(
+        "extends must name a kit config, or a list of them, each as a path or as a package would be imported",
+      );
+    } else {
+      upstreams = [...listed];
+    }
+  }
+
   /* The translation: the source locale, the targets, and — with a model —
      the options a run translates by. */
   let source = "";
@@ -248,6 +264,7 @@ export const validate = (config: KitConfig): Settings => {
   }
   return {
     messages: config.messages,
+    extends: upstreams,
     source,
     targets,
     translations,

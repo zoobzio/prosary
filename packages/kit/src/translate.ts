@@ -7,6 +7,8 @@ import { dirname, join, resolve } from "node:path";
 import { record } from "objectively";
 
 import type { TranslateOutput, TranslateRunOptions, Translated } from "./types";
+import type { Origin } from "./chain";
+import { loadChain, mergeFormats } from "./chain";
 import { FILENAME, LOCK } from "./constant";
 import { checkTranslation, compileSource, knownFormats } from "./contract";
 import { checkDocument, listDocuments, readDocument } from "./documents";
@@ -19,7 +21,6 @@ import { loadConfig } from "./load";
 import { json } from "./print";
 import { readTranslations } from "./read";
 import { readSources } from "./sources";
-import { validate } from "./validate";
 
 /** What the lock records of one translation. */
 interface Entry {
@@ -172,6 +173,10 @@ const ordered = <T>(
  * Each locale's files and the lock are written as that locale goes, so a
  * run that fails part-way keeps what it had done.
  *
+ * A config that extends others translates only its own: the messages and
+ * documents of an upstream are read, for the contract and the named
+ * formats a translation is checked against, and never written.
+ *
  * With `check`, nothing is asked of a model and nothing is written: the run
  * only says, per locale, which messages and documents a real run would
  * translate — what a CI job fails on.
@@ -190,9 +195,11 @@ export const translate = async (
   options: TranslateRunOptions = {},
 ): Promise<TranslateOutput> => {
   const root = resolve(options.root ?? process.cwd());
-  const settings = validate(
+  const origins = await loadChain(
     await loadConfig(resolve(root, options.config ?? FILENAME)),
+    root,
   );
+  const { settings } = origins[origins.length - 1] as Origin;
   const check = options.check === true;
   const translateOptions = options.translate ?? settings.translate;
   if (
@@ -222,8 +229,8 @@ export const translate = async (
     );
   }
 
-  const known = knownFormats(settings.formats);
-  const { messages: source, chunks } = await readSources(root, settings);
+  const known = knownFormats(mergeFormats(origins));
+  const { messages: source, chunks: all } = await readSources(origins);
   const contract = compileSource(source, known);
   const broken = Object.entries(contract.issues).flatMap(([key, issues]) =>
     issues.map(
@@ -233,7 +240,12 @@ export const translate = async (
   if (broken.length > 0) {
     throw new InvalidMessagesError(broken);
   }
-  const keys = Object.keys(contract.messages);
+  // The project's own: the files it writes, and the keys it translates.
+  const chunks = all.filter((chunk) => chunk.local);
+  const owned = new Set(
+    chunks.flatMap((chunk) => chunk.keys.map((key) => `${chunk.prefix}${key}`)),
+  );
+  const keys = Object.keys(contract.messages).filter((key) => owned.has(key));
 
   const contentDir =
     settings.content === undefined

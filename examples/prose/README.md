@@ -11,7 +11,9 @@ pnpm --filter @prosary/example-prose build
 ```
 
 - `prosary.config.ts` — the source messages, the content and its presets, the
-  named formats, and the locales
+  named formats, and the locales. Exported as `@prosary/example-prose/config`,
+  so another project's kit config can `extends` it and build these messages
+  and documents into its own contract, adding to or replacing them
 - `src/messages/` — the source messages, in English, one file per group:
   `heading` in `hero.json` is `$t.hero.heading()`, and the dotted
   `seat.name` in `fare.json` is `$t.fare.seat.name()`

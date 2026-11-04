@@ -24,6 +24,22 @@ export interface KitConfig {
   messages: string;
 
   /**
+   * Other kit configs this one builds on: each the config of a package of
+   * messages, named as the project would import it
+   * (`@acme/words/config`), or as a path relative to the project root. Each
+   * one's messages, content and named formats join the build, read from
+   * where that package stands, with its own translations. An upstream is
+   * read, never written: `prosary translate` translates only this config's
+   * own messages and documents.
+   *
+   * Later wins. A key, a document or a named format this config declares
+   * replaces an upstream's; between upstreams, the one listed later wins.
+   * An upstream may extend configs of its own. Every config in the chain
+   * must be written in the same source locale.
+   */
+  extends?: string | string[];
+
+  /**
    * How the messages and the content translate: the locale they are written
    * in, the locales they are translated to, and — for `prosary translate` to
    * call a model — the model, named as `provider/model`, and its settings.
@@ -264,7 +280,8 @@ export interface Kit extends Core {
 
   /**
    * The absolute path of every file the build read, the source messages
-   * first — what a dev server watches to rebuild on change.
+   * first, the configs it extends included — what a dev server watches to
+   * rebuild on change.
    */
   inputs: string[];
 }

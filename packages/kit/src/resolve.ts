@@ -1,5 +1,7 @@
 import { resolve } from "node:path";
 
+import type { Origin } from "./chain";
+import type { Builder } from "./content";
 import type {
   Bundle,
   Coverage,
@@ -7,13 +9,28 @@ import type {
   Kit,
   KitConfig,
 } from "./types";
+import { loadChain, mergeFormats } from "./chain";
 import { createBuilder } from "./content";
 import { checkTranslation, compileSource, knownFormats } from "./contract";
 import { listDocuments, readDocument } from "./documents";
 import { InvalidMessagesError } from "./error";
 import { readTranslations } from "./read";
 import { readSources } from "./sources";
-import { validate } from "./validate";
+
+/** A content document as one config holds it: its text, and where it came from. */
+interface Held {
+  /** The config that owns the document. */
+  origin: Origin;
+
+  /** The absolute path of the source document. */
+  file: string;
+
+  /** The source document. */
+  source: string;
+
+  /** The document built in the form the config asks for. */
+  built: string;
+}
 
 /**
  * Resolves a kit config to everything a build emits: validates the config,
@@ -30,6 +47,11 @@ import { validate } from "./validate";
  * for: each locale has every document, the source's where it has no
  * translation.
  *
+ * A config that extends others brings their messages, content and named
+ * formats into the build, each read from its own package with its own
+ * translations and built with its own presets; what the config declares
+ * itself wins (see {@link loadChain}).
+ *
  * @param config - The kit config.
  * @param options - The project root.
  * @throws InvalidConfigError when the config breaks a rule, before reading.
@@ -42,14 +64,21 @@ export const resolveKit = async (
   config: KitConfig,
   options: GenerateOptions = {},
 ): Promise<Kit> => {
-  const settings = validate(config);
   const root = resolve(options.cwd ?? process.cwd());
+  const origins = await loadChain(config, root);
+  const { settings } = origins[origins.length - 1] as Origin;
   const issues: string[] = [];
 
-  const known = knownFormats(settings.formats);
+  const formats = mergeFormats(origins);
+  const known = knownFormats(formats);
 
-  const { messages: source, chunks } = await readSources(root, settings);
+  const { messages: source, chunks } = await readSources(origins);
   const inputs = chunks.map((chunk) => chunk.path);
+  for (const origin of origins) {
+    if (origin.path !== undefined) {
+      inputs.push(origin.path);
+    }
+  }
 
   const contract = compileSource(source, known);
   const { messages, reference } = contract;
@@ -59,25 +88,43 @@ export const resolveKit = async (
     }
   }
 
-  // The content: every source document, then each locale's translation of
-  // it — or the source document where a locale has none — each built in the
-  // form the config asks for.
-  const contentDir =
-    settings.content === undefined
-      ? undefined
-      : resolve(root, settings.content);
-  const paths = contentDir === undefined ? [] : await listDocuments(contentDir);
-  const builder = createBuilder(settings.presets);
-  const sources: Record<string, string> = {};
-  const built: Record<string, string> = {};
-  for (const path of paths) {
-    const file = resolve(contentDir ?? root, path);
-    const document = await readDocument(contentDir ?? root, path);
-    if (document !== undefined) {
-      sources[path] = document;
-      built[path] = builder.build(document, settings.output, file);
+  // The content: every source document of every config, then each locale's
+  // translation of it — or the source document where a locale has none —
+  // each built with its config's presets, in the form this config asks for.
+  // A document a later config holds at the same path replaces the earlier.
+  const builders = new Map<Origin, Builder>();
+  const builderOf = (origin: Origin): Builder => {
+    let builder = builders.get(origin);
+    if (builder === undefined) {
+      builder = createBuilder(origin.settings.presets);
+      builders.set(origin, builder);
+    }
+    return builder;
+  };
+  const held: Record<string, Held> = {};
+  for (const origin of origins) {
+    if (origin.settings.content === undefined) {
+      continue;
+    }
+    const contentDir = resolve(origin.root, origin.settings.content);
+    for (const path of await listDocuments(contentDir)) {
+      const file = resolve(contentDir, path);
+      const document = await readDocument(contentDir, path);
+      if (document === undefined) {
+        continue;
+      }
+      held[path] = {
+        origin,
+        file,
+        source: document,
+        built: builderOf(origin).build(document, settings.output, file),
+      };
       inputs.push(file);
     }
+  }
+  const built: Record<string, string> = {};
+  for (const [path, { built: document }] of Object.entries(held)) {
+    built[path] = document;
   }
   const content: Record<string, Record<string, string>> = {
     [settings.source]: built,
@@ -95,7 +142,13 @@ export const resolveKit = async (
       }
       inputs.push(path);
       for (const [key, message] of Object.entries(translations)) {
-        translated[`${chunk.prefix}${key}`] = message;
+        const full = `${chunk.prefix}${key}`;
+        // A translation of a key another config declared again is that
+        // config's to translate: neither used nor orphaned.
+        if (Object.hasOwn(source, full) && !chunk.keys.includes(key)) {
+          continue;
+        }
+        translated[full] = message;
       }
     }
 
@@ -123,17 +176,25 @@ export const resolveKit = async (
         bundle[key] = checked.ast;
       }
     }
-    const translatedDir = resolve(root, settings.translations, locale);
     const localized: Record<string, string> = {};
     const untranslated: string[] = [];
-    for (const path of Object.keys(sources)) {
+    for (const [path, { origin, built: document }] of Object.entries(held)) {
+      const translatedDir = resolve(
+        origin.root,
+        origin.settings.translations,
+        locale,
+      );
       const translation = await readDocument(translatedDir, path);
       if (translation === undefined) {
         untranslated.push(path);
-        localized[path] = built[path] as string;
+        localized[path] = document;
       } else {
         const file = resolve(translatedDir, path);
-        localized[path] = builder.build(translation, settings.output, file);
+        localized[path] = builderOf(origin).build(
+          translation,
+          settings.output,
+          file,
+        );
         inputs.push(file);
       }
     }
@@ -152,16 +213,17 @@ export const resolveKit = async (
   if (issues.length > 0) {
     throw new InvalidMessagesError(issues);
   }
+  const seen = [...builders.values()];
   return {
     locale: settings.source,
     locales: [settings.source, ...settings.targets],
-    formats: settings.formats,
+    formats,
     messages,
     bundles,
-    documents: Object.keys(sources),
+    documents: Object.keys(held),
     output: settings.output,
-    elements: builder.elements(),
-    directives: builder.directives(),
+    elements: [...new Set(seen.flatMap((b) => b.elements()))].sort(),
+    directives: [...new Set(seen.flatMap((b) => b.directives()))].sort(),
     content,
     outDir: settings.outDir,
     coverage,
