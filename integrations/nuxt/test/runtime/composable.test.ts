@@ -11,6 +11,16 @@ vi.mock("#app", () => ({
   useNuxtApp: () => nuxtApp,
 }));
 
+vi.mock(
+  "#build/prosary/index.mjs",
+  () => import("../../src/stubs/build/prosary/index.mjs"),
+);
+
+vi.mock(
+  "#build/prosary/routes.mjs",
+  () => import("../../src/stubs/build/prosary/routes.mjs"),
+);
+
 const { request, asyncData } = vi.hoisted(() => ({
   request: vi.fn(async (url: string) => ({ type: "root", url })),
   asyncData: vi.fn(
@@ -62,10 +72,21 @@ describe("useDocument", () => {
     ) as unknown as () => Promise<unknown>;
     await expect(load()).resolves.toEqual({
       type: "root",
-      url: "/_prosary/content/fr/guide/start.json",
+      url: "/i18n/content/fr/guide/start.json",
     });
-    expect(request).toHaveBeenCalledWith(
-      "/_prosary/content/fr/guide/start.json",
+    expect(request).toHaveBeenCalledWith("/i18n/content/fr/guide/start.json", {
+      responseType: "json",
+    });
+  });
+
+  it("asks the endpoint for a path the build does not know, as it stands", async () => {
+    config.locale = "fr";
+    const load = useDocument(
+      "blog/été 2026.md",
+    ) as unknown as () => Promise<unknown>;
+    await load();
+    expect(request).toHaveBeenLastCalledWith(
+      "/i18n/content/fr/blog/%C3%A9t%C3%A9%202026.md",
       { responseType: "json" },
     );
   });

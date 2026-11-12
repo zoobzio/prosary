@@ -2,7 +2,7 @@ import type { Root } from "hast";
 import type { ComputedRef } from "vue";
 import type {
   AppProsary,
-  AppProsaryDocument,
+  AppProsaryDocumentPath,
   AppProsaryLocale,
   AppProsaryResolver,
   SetLocale,
@@ -11,7 +11,8 @@ import type {
 import { computed } from "vue";
 import { useNuxtApp } from "#app";
 import { useAsyncData, useRequestFetch } from "#imports";
-import { CONTENT_URL } from "../constant";
+import { documents } from "#build/prosary/index.mjs";
+import { routes } from "#build/prosary/routes.mjs";
 
 /**
  * Composable for the app's prosary service: the formatting helpers
@@ -53,22 +54,34 @@ export const useLocale = (): {
   };
 };
 
+/** The documents the build wrote, as plain paths to look one up in. */
+const built: readonly string[] = documents;
+
 /**
  * Composable for one content document, as its HTML syntax tree, in the
- * active locale. The tree is fetched as the JSON file the build wrote for
- * that locale — the server render includes it, and a locale switch fetches
- * the other locale's copy.
+ * active locale — the server render includes it, and a locale switch
+ * fetches the other locale's copy. A document the app builds is fetched as
+ * the JSON file the build wrote for that locale. Any other path is asked of
+ * the content endpoint as it stands, which an app whose content lives
+ * elsewhere answers from a catalog, with `defineContentHandlers` — so an app
+ * may build some of its documents and take the rest from a catalog.
  *
- * @param path - The document's path under the content directory.
+ * @param path - The document's path: under the content directory, or as the
+ * catalog knows it.
  */
-export const useDocument = (path: AppProsaryDocument) => {
+export const useDocument = (path: AppProsaryDocumentPath) => {
   const { $prosary } = useNuxtApp();
   const request = useRequestFetch();
-  const file = path.replace(/\.md$/, ".json");
+  const file = built.includes(path)
+    ? path.replace(/\.md$/, ".json")
+    : path
+        .split("/")
+        .map((segment) => encodeURIComponent(segment))
+        .join("/");
   return useAsyncData(
     `prosary:document:${path}`,
     () =>
-      request<Root>(`${CONTENT_URL}/${$prosary.config.locale}/${file}`, {
+      request<Root>(`${routes.content}/${$prosary.config.locale}/${file}`, {
         responseType: "json",
       }),
     { watch: [() => $prosary.config.locale] },

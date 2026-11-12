@@ -37,6 +37,13 @@ export type AppProsaryMessage = Message<AppProsaryContract>;
 export type AppProsaryDocument = Document;
 
 /**
+ * A path `useDocument` takes: a document the app is built with, which an
+ * editor completes, or any other path, which a catalog answers — its
+ * documents are ones no build knows.
+ */
+export type AppProsaryDocumentPath = AppProsaryDocument | (string & {});
+
+/**
  * One locale's compiled messages.
  */
 export type AppProsaryBundle = Bundle<AppProsaryContract>;

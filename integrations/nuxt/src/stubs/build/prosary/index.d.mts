@@ -28,6 +28,7 @@ export interface Contract {
   readonly arguments?: Arguments;
 }
 export declare const contract: Contract;
+export declare const documents: readonly Document[];
 export declare const elements: readonly Element[];
 export declare const directives: readonly Directive[];
 export declare const content: {

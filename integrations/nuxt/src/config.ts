@@ -46,6 +46,14 @@ export interface NuxtProsaryConfig {
   build?: string;
 
   /**
+   * The prefix the module's endpoints are mounted under: the content
+   * documents are served from `{prefix}/content`, and a catalog's route file
+   * sits at `server/routes{prefix}/[...path].ts`. Defaults to `/i18n`; name
+   * another when the app has routes of its own there.
+   */
+  prefix?: string;
+
+  /**
    * The overrides: a directory, relative to the source directory (`app/`), of components
    * that render in place of elements and directives. Each `.vue` file at its
    * top level renders the tag or directive its name spells in kebab case:

@@ -13,6 +13,7 @@ const kit = vi.hoisted(() => ({
   addPlugin: vi.fn(),
   addImports: vi.fn(),
   addServerHandler: vi.fn(),
+  addServerImports: vi.fn(),
   addComponent: vi.fn(),
   createResolver: vi.fn(() => ({
     resolve: (p: string) => `/resolved${p}`,
@@ -89,6 +90,7 @@ interface FakeNuxt {
         fallthrough: boolean;
       }[];
       serverAssets?: { baseName: string; dir: string }[];
+      alias?: Record<string, string>;
     };
   };
 }
@@ -163,6 +165,8 @@ describe("prosary module", () => {
       "prosary/messages/fr.d.mts",
       "prosary/content/en/intro.json",
       "prosary/content/fr/intro.json",
+      "prosary/routes.mjs",
+      "prosary/routes.d.mts",
       "prosary/components.mjs",
       "prosary/components.d.mts",
     ]);
@@ -178,20 +182,47 @@ describe("prosary module", () => {
     );
   });
 
+  it("mounts its endpoints under /i18n, and tells the runtime where", async () => {
+    await mod.setup({}, nuxt());
+    const written = templates();
+    expect(written["prosary/routes.mjs"]!.getContents()).toContain(
+      '"content": "/i18n/content"',
+    );
+    expect(written["prosary/routes.d.mts"]!.getContents()).toContain(
+      "readonly content: string;",
+    );
+  });
+
+  it.each([
+    ["api/lang", "/api/lang", "/api/lang/content"],
+    ["/_prosary/", "/_prosary", "/_prosary/content"],
+    ["/", "", "/content"],
+  ])(
+    "mounts them under the prefix %j the config names",
+    async (prefix, mounted, content) => {
+      const app = nuxt();
+      await mod.setup({ prefix }, app);
+      const routes = templates()["prosary/routes.mjs"]!.getContents();
+      expect(routes).toContain(`"prefix": ${JSON.stringify(mounted)}`);
+      expect(routes).toContain(`"content": ${JSON.stringify(content)}`);
+      expect(app.options.nitro.publicAssets?.[0]?.baseURL).toBe(content);
+    },
+  );
+
   it("serves the built content documents as static files", async () => {
     const app = nuxt();
     await mod.setup({}, app);
     expect(app.options.nitro.publicAssets).toEqual([
       {
         dir: "/app/.nuxt/prosary/content",
-        baseURL: "/_prosary/content",
+        baseURL: "/i18n/content",
         maxAge: 0,
         fallthrough: true,
       },
     ]);
   });
 
-  it("serves the content from a handler of its own as well, in development", async () => {
+  it("serves the content from a middleware of its own as well, in development", async () => {
     const app = nuxt();
     await mod.setup({}, app);
     expect(app.options.nitro.serverAssets).toBeUndefined();
@@ -202,7 +233,7 @@ describe("prosary module", () => {
       { baseName: "prosary", dir: "/app/.nuxt/prosary/content" },
     ]);
     expect(kit.addServerHandler).toHaveBeenCalledWith({
-      route: "/_prosary/content/**",
+      middleware: true,
       handler: "/resolved./runtime/server/content.js",
     });
   });
@@ -309,6 +340,20 @@ describe("prosary module", () => {
     });
   });
 
+  it("gives the server the catalog handlers, and the contract to prove with", async () => {
+    const app = nuxt();
+    await mod.setup({}, app);
+    expect(kit.addServerImports).toHaveBeenCalledWith([
+      {
+        from: "/resolved./runtime/server/handlers.js",
+        name: "defineContentHandlers",
+      },
+    ]);
+    expect(app.options.nitro.alias).toEqual({
+      "#prosary": "/app/.nuxt/prosary",
+    });
+  });
+
   it("auto-imports the composables, the store and the app types", async () => {
     await mod.setup({}, nuxt());
     const imports = kit.addImports.mock.calls[0]?.[0] as {
@@ -383,6 +428,8 @@ describe("prosary module, over a build made elsewhere", () => {
       "prosary/index.d.mts",
       "prosary/bundles.mjs",
       "prosary/bundles.d.mts",
+      "prosary/routes.mjs",
+      "prosary/routes.d.mts",
       "prosary/components.mjs",
       "prosary/components.d.mts",
     ]);
@@ -431,7 +478,7 @@ describe("prosary module, over a build made elsewhere", () => {
     expect(app.options.nitro.publicAssets).toEqual([
       {
         dir: join(built, "content"),
-        baseURL: "/_prosary/content",
+        baseURL: "/i18n/content",
         maxAge: 0,
         fallthrough: true,
       },

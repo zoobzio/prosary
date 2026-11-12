@@ -6,15 +6,17 @@ import {
   addPlugin,
   addImports,
   addServerHandler,
+  addServerImports,
   addComponent,
   createResolver,
 } from "@nuxt/kit";
 
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import { componentsModule, scanOverrides } from "./components";
-import { CONTENT_URL, MODULES, OVERRIDES } from "./constant";
+import { MODULES, OVERRIDES, SERVER_ALIAS } from "./constant";
 import { loadSource } from "./kit";
+import { contentURL, normalizePrefix, routesModule } from "./routes";
 
 /**
  * Nuxt module for prosary.
@@ -30,7 +32,9 @@ import { loadSource } from "./kit";
  * `bundles` modules re-export the build's own. Either way it serves the
  * content documents as static files, and registers the runtime plugin and
  * the `useProsary`, `useT`, `useLocale` and `useDocument` auto-imports, and
- * `<Prose>`, which renders a document with the app's overrides.
+ * `<Prose>`, which renders a document with the app's overrides. An app whose
+ * documents live elsewhere answers the same content endpoint from a catalog,
+ * with `defineContentHandlers` in a server route.
  *
  * A visitor gets one locale. The server picks it — their cookie, else the
  * best match for the languages their browser asks for, else the source
@@ -61,6 +65,7 @@ export default defineNuxtModule<NuxtProsaryConfig>({
       document: await runtime("document"),
       plugin: await runtime("plugin"),
       content: await runtime("server/content"),
+      handlers: await runtime("server/handlers"),
     };
 
     const source = await loadSource(options, nuxt);
@@ -83,6 +88,20 @@ export default defineNuxtModule<NuxtProsaryConfig>({
     }
 
     /*
+     * Where the endpoints are mounted, as a module the runtime reads on both
+     * sides: the composable that fetches a document, and the server handlers
+     * that answer it.
+     */
+    const prefix = normalizePrefix(options.prefix);
+    for (const file of routesModule(prefix)) {
+      addTemplate({
+        filename: `${MODULES}/${file.path}`,
+        write: true,
+        getContents: () => file.contents,
+      });
+    }
+
+    /*
      * The content documents are files a page fetches, not modules it
      * imports: the build's copy is served as static assets, each
      * locale's documents under its own path, so a visitor downloads the
@@ -91,13 +110,16 @@ export default defineNuxtModule<NuxtProsaryConfig>({
      * In development, Nitro serves static assets from outside its worker,
      * so a page rendered on the server would not find its document. The
      * same directory is then also mounted as a server asset and served by
-     * a handler of the module, which answers the server's own fetch.
+     * a middleware of the module, which answers the server's own fetch. A
+     * middleware rather than a route, so a document the build does not hold
+     * passes on to the app's own routes — a catalog's, as it does past the
+     * static files in production.
      */
     if (source.content !== undefined) {
       nuxt.options.nitro.publicAssets ||= [];
       nuxt.options.nitro.publicAssets.push({
         dir: source.content,
-        baseURL: CONTENT_URL,
+        baseURL: contentURL(prefix),
         // The paths carry no content hash, so a document must not outlive
         // the build that wrote it in a visitor's cache.
         maxAge: 0,
@@ -112,11 +134,26 @@ export default defineNuxtModule<NuxtProsaryConfig>({
           dir: source.content,
         });
         addServerHandler({
-          route: `${CONTENT_URL}/**`,
+          middleware: true,
           handler: files.content,
         });
       }
     }
+
+    /*
+     * The server's side of a catalog: `defineContentHandlers`, auto-imported
+     * in the server directory, which answers the content endpoint from a
+     * catalog for an app whose documents are not built here. It proves its
+     * answers against the contract, which Nuxt keeps the server from
+     * importing under `#build` — so the kit's output is aliased for the
+     * server alone, under a name of the module's own.
+     */
+    nuxt.options.nitro.alias ||= {};
+    nuxt.options.nitro.alias[SERVER_ALIAS] = join(
+      nuxt.options.buildDir,
+      MODULES,
+    );
+    addServerImports([{ from: files.handlers, name: "defineContentHandlers" }]);
 
     /*
      * The overrides: the components in the overrides directory, as the map
@@ -166,6 +203,7 @@ export default defineNuxtModule<NuxtProsaryConfig>({
         "AppProsaryKey",
         "AppProsaryMessage",
         "AppProsaryDocument",
+        "AppProsaryDocumentPath",
         "AppProsaryBundle",
         "AppProsaryConfig",
         "AppProsarySelection",

@@ -23,10 +23,18 @@ export const TIME_ZONE_COOKIE = "prosary-time-zone";
 export const CONVENTION_COOKIE = "prosary-convention";
 
 /**
- * Where the built content documents are served from, as static files:
- * `{CONTENT_URL}/<locale>/<path>`.
+ * The prefix the module's endpoints are mounted under when the config names
+ * none: the content documents are served from `{PREFIX}/content`, a
+ * document at `{PREFIX}/content/<locale>/<path>`.
  */
-export const CONTENT_URL = "/_prosary/content";
+export const PREFIX = "/i18n";
+
+/**
+ * The alias the server imports the kit's output through: the build
+ * directory's `prosary/`, which Nuxt keeps the server from reaching under
+ * `#build`.
+ */
+export const SERVER_ALIAS = "#prosary";
 
 /**
  * The directory of overrides, relative to the source directory, when the config
