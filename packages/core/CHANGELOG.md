@@ -1,5 +1,12 @@
 # @prosary/core
 
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @prosary/schema@0.0.11
+
 ## 0.0.10
 
 ### Patch Changes
